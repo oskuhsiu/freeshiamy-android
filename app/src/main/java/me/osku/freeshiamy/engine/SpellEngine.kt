@@ -26,7 +26,9 @@ class SpellEngine(
 
             spellMap.getOrPut(code) { ArrayList() }.add(value)
             // Prefer the first pronunciation encountered for heteronyms.
-            valueMap.putIfAbsent(value, code)
+            if (!valueMap.containsKey(value)) {
+                valueMap[value] = code
+            }
         }
 
         spellToValues = spellMap.mapValues { it.value.toList() }
@@ -37,4 +39,3 @@ class SpellEngine(
 
     fun valuesForSpell(spell: String): List<String> = spellToValues[spell].orEmpty()
 }
-
