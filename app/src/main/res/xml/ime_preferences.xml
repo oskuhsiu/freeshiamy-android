@@ -23,7 +23,7 @@
         <SeekBarPreference
             android:defaultValue="100"
             android:key="keyboard_height_percent"
-            android:max="140"
+            android:max="220"
             android:min="80"
             android:title="鍵盤高度（%）" />
 

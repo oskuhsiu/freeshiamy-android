@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
@@ -23,6 +24,7 @@ import me.osku.freeshiamy.engine.ShiamyEngine
 import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
 import me.osku.freeshiamy.ui.CandidateBarView
+import kotlin.math.abs
 
 /**
  * FreeShiamy IME (嘸蝦米)
@@ -47,6 +49,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var symbolsShiftedKeyboard: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
+
+    private var pendingCandidateBarSync: Boolean = false
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -91,16 +95,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     override fun onCreateInputView(): View {
-        inputView = layoutInflater.inflate(R.layout.input, null) as FreeShiamyKeyboardView
-        inputView?.setOnKeyboardActionListener(this)
-        inputView?.setPreviewEnabled(false)
-        setLatinKeyboard(qwertyKeyboard)
-        return inputView as View
-    }
-
-    override fun onCreateCandidatesView(): View {
-        val view = CandidateBarView(getDisplayContextCompat())
-        view.listener = object : CandidateBarView.Listener {
+        val root = layoutInflater.inflate(R.layout.input, null) as ViewGroup
+        candidateBarView = root.findViewById(R.id.candidate_bar)
+        candidateBarView?.listener = object : CandidateBarView.Listener {
             override fun onRawClick() {
                 commitRawBuffer()
             }
@@ -109,10 +106,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
                 commitCandidate(entry)
             }
         }
-        candidateBarView = view
+
+        inputView = root.findViewById(R.id.keyboard)
+        inputView?.setOnKeyboardActionListener(this)
+        inputView?.setPreviewEnabled(false)
+        setLatinKeyboard(qwertyKeyboard)
         reloadSettings()
+        inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
-        return view
+        requestCandidateBarSync()
+        return root
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
@@ -125,7 +128,6 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onFinishInput() {
         super.onFinishInput()
         clearState()
-        setCandidatesViewShown(false)
         inputView?.closing()
     }
 
@@ -133,18 +135,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         super.onStartInputView(attribute, restarting)
         setLatinKeyboard(curKeyboard)
         inputView?.closing()
-        val subtype: InputMethodSubtype? = inputMethodManager?.currentInputMethodSubtype
-        if (subtype != null) {
-            inputView?.setSubtypeOnSpaceKey(subtype)
-        }
         reloadSettings()
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
         updateUi()
+        requestCandidateBarSync()
     }
 
     override fun onCurrentInputMethodSubtypeChanged(subtype: InputMethodSubtype?) {
-        subtype?.let { inputView?.setSubtypeOnSpaceKey(it) }
+        // No-op: we intentionally keep the spacebar icon stable (not subtype/app icon).
     }
 
     override fun onUpdateSelection(
@@ -221,6 +220,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             FreeShiamyKeyboardView.KEYCODE_LANGUAGE_SWITCH -> handleLanguageSwitch()
             FreeShiamyKeyboardView.KEYCODE_OPTIONS -> {
                 openSettings()
+            }
+            FreeShiamyKeyboardView.KEYCODE_INDENT -> {
+                handleIndent(ic)
             }
 
             10 -> handleEnter(ic)
@@ -317,6 +319,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         ic.commitText("\n", 1)
     }
 
+    private fun handleIndent(ic: InputConnection) {
+        if (rawBuffer.isNotEmpty()) {
+            commitRawBuffer(ic)
+        }
+        ic.commitText("    ", 1)
+    }
+
     private fun commitCandidate(entry: CinEntry) {
         val ic = currentInputConnection ?: return
         ic.commitText(entry.value, 1)
@@ -370,13 +379,40 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun updateUi() {
         val rawText = rawBuffer.toString()
-        val shouldShowCandidates = rawText.isNotEmpty()
-        setCandidatesViewShown(shouldShowCandidates)
+        // Keep the candidate bar space reserved to avoid keyboard jumping (layout thrash).
+        val shouldShowCandidateBar = rawText.isNotEmpty()
+        candidateBarView?.visibility = if (shouldShowCandidateBar) View.VISIBLE else View.INVISIBLE
         candidateBarView?.setState(
             rawText = rawText,
             prefixCandidates = prefixCandidates,
             exactCount = exactCount,
         )
+    }
+
+    private fun requestCandidateBarSync() {
+        val view = inputView ?: return
+        if (pendingCandidateBarSync) return
+        pendingCandidateBarSync = true
+        view.post {
+            pendingCandidateBarSync = false
+            syncCandidateBarToKeyboard(iterationsLeft = 3)
+        }
+    }
+
+    private fun syncCandidateBarToKeyboard(iterationsLeft: Int) {
+        val view = inputView ?: return
+        val bar = candidateBarView ?: return
+
+        val scale = view.getEffectiveHeightScale()
+        bar.setHeightScale(scale)
+
+        if (iterationsLeft <= 0) return
+        view.post {
+            val newScale = view.getEffectiveHeightScale()
+            if (abs(newScale - scale) > 0.01f) {
+                syncCandidateBarToKeyboard(iterationsLeft - 1)
+            }
+        }
     }
 
     private fun reloadSettings() {
@@ -400,6 +436,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
         inputView?.keyboard = nextKeyboard
+        requestCandidateBarSync()
     }
 
     private fun getToken(): IBinder? {

@@ -9,28 +9,28 @@
     <LinearLayout
         android:id="@+id/candidate_bar_row"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="@dimen/key_height"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp"
-        android:paddingVertical="6dp">
+        android:paddingVertical="0dp">
 
         <TextView
             android:id="@+id/raw_text"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="0.35"
             android:ellipsize="end"
+            android:gravity="center_vertical"
             android:maxLines="1"
             android:paddingHorizontal="8dp"
-            android:paddingVertical="6dp"
-            android:textColor="@color/candidate_other"
-            android:textSize="14sp" />
+            android:paddingVertical="0dp"
+            android:textColor="@color/candidate_other" />
 
         <HorizontalScrollView
             android:id="@+id/candidate_scroll"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="0.65"
             android:fillViewport="true"
             android:overScrollMode="never"
@@ -39,7 +39,7 @@
             <LinearLayout
                 android:id="@+id/candidate_container"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal" />
         </HorizontalScrollView>
@@ -47,10 +47,11 @@
         <Button
             android:id="@+id/more_button"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
+            android:minHeight="0dp"
             android:minWidth="0dp"
             android:paddingHorizontal="10dp"
-            android:paddingVertical="6dp"
+            android:paddingVertical="0dp"
             android:text="▼"
             android:textColor="@color/candidate_other" />
     </LinearLayout>
@@ -71,4 +72,3 @@
     </ScrollView>
 
 </LinearLayout>
-

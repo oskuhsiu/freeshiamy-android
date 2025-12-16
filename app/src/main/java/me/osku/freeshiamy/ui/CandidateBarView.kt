@@ -2,6 +2,7 @@ package me.osku.freeshiamy.ui
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
@@ -9,8 +10,10 @@ import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.widget.TextViewCompat
 import me.osku.freeshiamy.R
 import me.osku.freeshiamy.engine.CinEntry
+import kotlin.math.roundToInt
 
 class CandidateBarView @JvmOverloads constructor(
     context: Context,
@@ -23,6 +26,7 @@ class CandidateBarView @JvmOverloads constructor(
         fun onCandidateClick(entry: CinEntry)
     }
 
+    private val candidateBarRow: LinearLayout
     private val rawTextView: TextView
     private val candidateContainer: LinearLayout
     private val moreButton: Button
@@ -35,12 +39,18 @@ class CandidateBarView @JvmOverloads constructor(
     private var inlineLimit: Int = 10
     private var maxMoreItems: Int = 200
 
+    private val baseRowHeightPx: Int by lazy { resources.getDimensionPixelSize(R.dimen.key_height) }
+    private var headerRowHeightPx: Int = 0
+    private var autoSizeMinSp: Int = 12
+    private var autoSizeMaxSp: Int = 18
+
     var listener: Listener? = null
 
     init {
         orientation = VERTICAL
         LayoutInflater.from(context).inflate(R.layout.candidate_bar, this, true)
 
+        candidateBarRow = findViewById(R.id.candidate_bar_row)
         rawTextView = findViewById(R.id.raw_text)
         candidateContainer = findViewById(R.id.candidate_container)
         moreButton = findViewById(R.id.more_button)
@@ -49,6 +59,9 @@ class CandidateBarView @JvmOverloads constructor(
 
         rawTextView.setOnClickListener { listener?.onRawClick() }
         moreButton.setOnClickListener { setExpanded(!expanded) }
+
+        // Default to 1x keyboard row height so the top view matches a key row out of the box.
+        setHeightScale(1f)
     }
 
     fun setLimits(inlineLimit: Int, maxMoreItems: Int) {
@@ -104,16 +117,51 @@ class CandidateBarView @JvmOverloads constructor(
             val button = createCandidateButton(entry, i)
             val params = GridLayout.LayoutParams()
             params.setMargins(6, 6, 6, 6)
+            params.height = headerRowHeightPx
             button.layoutParams = params
             candidateGrid.addView(button)
         }
     }
 
+    fun setHeightScale(scale: Float) {
+        val safeScale = scale.coerceAtLeast(0.5f)
+        val newRowHeightPx = (baseRowHeightPx * safeScale).roundToInt().coerceAtLeast(1)
+        if (newRowHeightPx == headerRowHeightPx) return
+
+        headerRowHeightPx = newRowHeightPx
+        val rowLayoutParams = candidateBarRow.layoutParams
+            ?: LayoutParams(LayoutParams.MATCH_PARENT, headerRowHeightPx)
+        rowLayoutParams.height = headerRowHeightPx
+        candidateBarRow.layoutParams = rowLayoutParams
+
+        autoSizeMinSp = (12f * safeScale).roundToInt().coerceAtLeast(8)
+        autoSizeMaxSp = (18f * safeScale).roundToInt().coerceAtLeast(autoSizeMinSp)
+        applyAutoSize(rawTextView)
+        applyAutoSize(moreButton)
+
+        // Re-create buttons to apply the new sizing config.
+        renderInlineCandidates()
+        if (expanded) renderExpandedCandidates()
+    }
+
+    private fun applyAutoSize(view: TextView) {
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+            view,
+            autoSizeMinSp,
+            autoSizeMaxSp,
+            1,
+            TypedValue.COMPLEX_UNIT_SP,
+        )
+    }
+
     private fun createCandidateButton(entry: CinEntry, index: Int): Button {
         val button = Button(context)
         button.text = entry.value
+        button.isAllCaps = false
         button.minWidth = 0
-        button.setPadding(16, 8, 16, 8)
+        button.minHeight = 0
+        button.setPadding(16, 0, 16, 0)
+        applyAutoSize(button)
 
         val normal = resources.getColor(R.color.candidate_normal)
         val recommended = resources.getColor(R.color.candidate_recommended)
@@ -127,11 +175,10 @@ class CandidateBarView @JvmOverloads constructor(
             }
         )
 
-        val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+        val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
         lp.setMargins(6, 0, 6, 0)
         button.layoutParams = lp
         button.setOnClickListener { listener?.onCandidateClick(entry) }
         return button
     }
 }
-
