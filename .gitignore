@@ -116,6 +116,10 @@ captures/
 # Keystore files
 *.jks
 
+# Allow the repository's non-secret release keystore (used for CI builds).
+!keystore/freeshiamy-release.jks
+!keystore/release.properties
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 

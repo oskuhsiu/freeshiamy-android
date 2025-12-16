@@ -3,6 +3,14 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def releaseKeystoreProps = new Properties()
+def releaseKeystorePropsFile = rootProject.file("keystore/release.properties")
+if (releaseKeystorePropsFile.exists()) {
+    releaseKeystorePropsFile.withInputStream { stream ->
+        releaseKeystoreProps.load(stream)
+    }
+}
+
 android {
     namespace 'me.osku.freeshiamy'
     compileSdk 34
@@ -17,9 +25,20 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        release {
+            def storeFilePath = releaseKeystoreProps.getProperty("storeFile", "keystore/freeshiamy-release.jks")
+            storeFile rootProject.file(storeFilePath)
+            storePassword releaseKeystoreProps.getProperty("storePassword", "freeshiamy")
+            keyAlias releaseKeystoreProps.getProperty("keyAlias", "freeshiamy")
+            keyPassword releaseKeystoreProps.getProperty("keyPassword", "freeshiamy")
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -44,4 +63,3 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }
-
