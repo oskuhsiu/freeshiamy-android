@@ -21,6 +21,7 @@ import androidx.preference.PreferenceManager
 import me.osku.freeshiamy.engine.CinEntry
 import me.osku.freeshiamy.engine.CinParser
 import me.osku.freeshiamy.engine.ShiamyEngine
+import me.osku.freeshiamy.engine.SpellEngine
 import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
 import me.osku.freeshiamy.ui.CandidateBarView
@@ -38,6 +39,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private val rawBuffer = StringBuilder()
     private var prefixCandidates: List<CinEntry> = emptyList()
     private var exactCount: Int = 0
+    private var reverseLookupState: ReverseLookupState = ReverseLookupState.NONE
     private var candidateInlineLimit: Int = SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT
     private var candidateMoreLimit: Int = SettingsKeys.DEFAULT_CANDIDATE_MORE_LIMIT
     private var keyboardHeightPercent: Int = SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT
@@ -57,10 +59,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onCreate() {
         super.onCreate()
         inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        ensureEngineLoaded()
+        ensureEnginesLoaded()
     }
 
-    private fun ensureEngineLoaded() {
+    private fun ensureEnginesLoaded() {
+        ensureShiamyEngineLoaded()
+        ensureSpellEngineLoaded()
+    }
+
+    private fun ensureShiamyEngineLoaded() {
         if (sharedEngine != null || engineLoading) return
         engineLoading = true
 
@@ -72,6 +79,23 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
                 // Ignore; IME will work as raw keyboard until engine loads successfully.
             } finally {
                 engineLoading = false
+                mainHandler.post { updateUi() }
+            }
+        }.start()
+    }
+
+    private fun ensureSpellEngineLoaded() {
+        if (sharedSpellEngine != null || spellEngineLoading) return
+        spellEngineLoading = true
+
+        Thread {
+            try {
+                val entries = assets.open("cht_spells.cin").use { CinParser.parse(it) }
+                sharedSpellEngine = SpellEngine(entries)
+            } catch (_: Exception) {
+                // Ignore; reverse lookup will be disabled until the table loads successfully.
+            } finally {
+                spellEngineLoading = false
                 mainHandler.post { updateUi() }
             }
         }.start()
@@ -103,6 +127,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             }
 
             override fun onCandidateClick(entry: CinEntry) {
+                if (reverseLookupState != ReverseLookupState.ACTIVE &&
+                    isReverseLookupEntering(rawBuffer.toString()) &&
+                    exactCount > 0
+                ) {
+                    val index = prefixCandidates.indexOf(entry)
+                    if (index in 0 until exactCount) {
+                        triggerReverseLookup(index)
+                        return
+                    }
+                }
                 commitCandidate(entry)
             }
         }
@@ -233,6 +267,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleCharacter(primaryCode: Int, ic: InputConnection) {
+        if (reverseLookupState == ReverseLookupState.ACTIVE) {
+            cancelReverseLookup()
+        }
+
         val ch = primaryCode.toChar()
 
         if (ch.isLetter()) {
@@ -261,6 +299,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleSpace(ic: InputConnection) {
+        if (reverseLookupState == ReverseLookupState.ACTIVE) {
+            commitCandidateAt(0, ic)
+            return
+        }
+
+        if (isReverseLookupEntering(rawBuffer.toString()) && exactCount > 0) {
+            triggerReverseLookup(0)
+            return
+        }
+
         if (rawBuffer.isEmpty()) {
             ic.commitText(" ", 1)
             return
@@ -278,6 +326,18 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun handleDigit(primaryCode: Int, ic: InputConnection) {
         val digitIndex = primaryCode - '0'.toInt()
+
+        if (reverseLookupState == ReverseLookupState.ACTIVE) {
+            if (digitIndex < exactCount) {
+                commitCandidateAt(digitIndex, ic)
+            }
+            return
+        }
+
+        if (isReverseLookupEntering(rawBuffer.toString()) && exactCount > 0) {
+            triggerReverseLookup(digitIndex)
+            return
+        }
 
         if (rawBuffer.isNotEmpty() && exactCount > 0) {
             if (digitIndex < exactCount) {
@@ -297,6 +357,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleBackspace(ic: InputConnection) {
+        if (reverseLookupState == ReverseLookupState.ACTIVE) {
+            cancelReverseLookup()
+            return
+        }
+
         if (rawBuffer.isNotEmpty()) {
             rawBuffer.deleteCharAt(rawBuffer.length - 1)
             updateCandidates()
@@ -358,6 +423,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         rawBuffer.setLength(0)
         prefixCandidates = emptyList()
         exactCount = 0
+        reverseLookupState = ReverseLookupState.NONE
         candidateBarView?.setExpanded(false)
     }
 
@@ -368,13 +434,75 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             return
         }
 
-        val prefix = rawBuffer.toString()
+        if (reverseLookupState == ReverseLookupState.ACTIVE) return
+
+        val rawText = rawBuffer.toString()
+        val prefix =
+            if (isReverseLookupEntering(rawText)) {
+                reverseLookupState = ReverseLookupState.ENTERING
+                rawText.substring(1)
+            } else {
+                reverseLookupState = ReverseLookupState.NONE
+                rawText
+            }
         prefixCandidates = engine.queryPrefix(prefix)
         exactCount = 0
         val prefixLen = prefix.length
         while (exactCount < prefixCandidates.size && prefixCandidates[exactCount].codeLength == prefixLen) {
             exactCount++
         }
+    }
+
+    private fun isReverseLookupEntering(rawText: String): Boolean {
+        if (reverseLookupState == ReverseLookupState.ACTIVE) return false
+        if (rawText.length < 2) return false
+        if (rawText[0] != '\'') return false
+        // Avoid hijacking punctuation codes like "''" / "'''".
+        return rawText[1].isLetter()
+    }
+
+    private fun triggerReverseLookup(baseIndex: Int) {
+        val spellEngine = sharedSpellEngine ?: return
+
+        val rawText = rawBuffer.toString()
+        if (!isReverseLookupEntering(rawText)) return
+
+        val baseCode = rawText.substring(1)
+        if (baseCode.isEmpty()) return
+
+        if (exactCount <= 0) return
+        if (baseIndex < 0 || baseIndex >= exactCount) return
+
+        val baseChar = prefixCandidates[baseIndex].value
+        val spell = spellEngine.spellFor(baseChar)
+
+        val values =
+            if (spell != null) {
+                spellEngine.valuesForSpell(spell)
+            } else {
+                emptyList()
+            }
+
+        val entries =
+            if (values.isNotEmpty()) {
+                values.mapIndexed { index, value -> CinEntry(code = spell!!, value = value, sourceOrder = index) }
+            } else {
+                listOf(CinEntry(code = spell ?: "", value = baseChar, sourceOrder = 0))
+            }
+
+        reverseLookupState = ReverseLookupState.ACTIVE
+        candidateBarView?.setExpanded(false)
+        prefixCandidates = entries
+        exactCount = entries.size
+        updateUi()
+    }
+
+    private fun cancelReverseLookup() {
+        if (reverseLookupState != ReverseLookupState.ACTIVE) return
+        reverseLookupState = ReverseLookupState.ENTERING
+        candidateBarView?.setExpanded(false)
+        updateCandidates()
+        updateUi()
     }
 
     private fun updateUi() {
@@ -535,5 +663,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     companion object {
         @Volatile private var sharedEngine: ShiamyEngine? = null
         @Volatile private var engineLoading: Boolean = false
+
+        @Volatile private var sharedSpellEngine: SpellEngine? = null
+        @Volatile private var spellEngineLoading: Boolean = false
+    }
+
+    private enum class ReverseLookupState {
+        NONE,
+        ENTERING,
+        ACTIVE,
     }
 }
