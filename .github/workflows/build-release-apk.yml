@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
@@ -36,8 +36,23 @@ jobs:
       - name: Build signed release APK
         run: ./gradlew :app:assembleRelease
 
+      - name: Prepare release files
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/freeshiamy-${{ github.ref_name }}.apk"
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: freeshiamy-release-apk
-          path: app/build/outputs/apk/release/app-release.apk
+          path: dist/*.apk
+
+      - name: Publish GitHub Release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ github.ref_name }}
+          artifacts: dist/*.apk
+          allowUpdates: true
+          generateReleaseNotes: true
