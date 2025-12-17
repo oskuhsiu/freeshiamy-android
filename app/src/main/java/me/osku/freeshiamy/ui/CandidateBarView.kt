@@ -46,6 +46,8 @@ class CandidateBarView @JvmOverloads constructor(
     private var headerRowHeightPx: Int = 0
     private var autoSizeMinSp: Int = 12
     private var autoSizeMaxSp: Int = 18
+    private val candidateButtonHorizontalPaddingPx: Int = (16 * 0.6f).roundToInt()
+    private val candidateButtonHorizontalMarginPx: Int = (6 * 0.6f).roundToInt()
 
     var listener: Listener? = null
 
@@ -139,7 +141,7 @@ class CandidateBarView @JvmOverloads constructor(
             val entry = currentCandidates[i]
             val button = createCandidateButton(entry, i)
             val params = GridLayout.LayoutParams()
-            params.setMargins(6, 6, 6, 6)
+            params.setMargins(candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx)
             params.height = headerRowHeightPx
             button.layoutParams = params
             candidateGrid.addView(button)
@@ -184,7 +186,7 @@ class CandidateBarView @JvmOverloads constructor(
         button.isAllCaps = false
         button.minWidth = 0
         button.minHeight = 0
-        button.setPadding(16, 0, 16, 0)
+        button.setPadding(candidateButtonHorizontalPaddingPx, 0, candidateButtonHorizontalPaddingPx, 0)
         applyAutoSize(button)
 
         val normal = resources.getColor(R.color.candidate_normal)
@@ -200,7 +202,7 @@ class CandidateBarView @JvmOverloads constructor(
         )
 
         val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
-        lp.setMargins(6, 0, 6, 0)
+        lp.setMargins(candidateButtonHorizontalMarginPx, 0, candidateButtonHorizontalMarginPx, 0)
         button.layoutParams = lp
         button.setOnClickListener { listener?.onCandidateClick(entry) }
         return button

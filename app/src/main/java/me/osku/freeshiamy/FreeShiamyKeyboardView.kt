@@ -23,7 +23,7 @@ class FreeShiamyKeyboardView : KeyboardView {
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle)
 
     fun setHeightScale(scale: Float) {
-        val newScale = scale.coerceIn(0.8f, 2.2f)
+        val newScale = scale.coerceIn(0.9f, 2.2f)
         if (newScale == requestedHeightScale) return
         requestedHeightScale = newScale
         requestLayout()

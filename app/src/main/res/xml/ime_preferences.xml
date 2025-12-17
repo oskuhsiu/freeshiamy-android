@@ -15,6 +15,7 @@
 -->
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:title="@string/settings_name">
 
     <PreferenceCategory
@@ -24,8 +25,14 @@
             android:defaultValue="100"
             android:key="keyboard_height_percent"
             android:max="220"
-            android:min="80"
+            app:min="90"
             android:title="鍵盤高度（%）" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="swap_delete_apostrophe"
+            android:summary="把字母區右側的刪除鍵與「'」鍵互換位置"
+            android:title="交換刪除鍵與「'」鍵" />
 
     </PreferenceCategory>
 
@@ -42,14 +49,14 @@
             android:defaultValue="10"
             android:key="candidate_inline_limit"
             android:max="20"
-            android:min="5"
+            app:min="5"
             android:title="候選列顯示筆數" />
 
         <SeekBarPreference
             android:defaultValue="200"
             android:key="candidate_more_limit"
             android:max="500"
-            android:min="50"
+            app:min="50"
             android:title="更多列表最大顯示筆數" />
 
     </PreferenceCategory>

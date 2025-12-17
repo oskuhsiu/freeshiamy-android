@@ -25,7 +25,6 @@ import me.osku.freeshiamy.engine.SpellEngine
 import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
 import me.osku.freeshiamy.ui.CandidateBarView
-import kotlin.math.abs
 import java.util.Locale
 
 /**
@@ -52,10 +51,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private var symbolsKeyboard: FreeShiamyKeyboard? = null
     private var symbolsShiftedKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyKeyboardDefault: FreeShiamyKeyboard? = null
+    private var qwertyKeyboardSwapped: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
-
-    private var pendingCandidateBarSync: Boolean = false
+    private var swapDeleteAndApostrophe: Boolean = SettingsKeys.DEFAULT_SWAP_DELETE_APOSTROPHE
 
     // When Backspace/Delete is held and rawBuffer had content at the start of the press,
     // we must NOT continue deleting the editor text after rawBuffer becomes empty.
@@ -120,7 +120,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onInitializeInterface() {
         val displayContext: Context = getDisplayContextCompat()
-        qwertyKeyboard = FreeShiamyKeyboard(displayContext, R.xml.qwerty)
+        qwertyKeyboardDefault = FreeShiamyKeyboard(displayContext, R.xml.qwerty)
+        qwertyKeyboardSwapped = FreeShiamyKeyboard(displayContext, R.xml.qwerty_swap)
+        qwertyKeyboard = qwertyKeyboardDefault
         symbolsKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols)
         symbolsShiftedKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols_shift)
     }
@@ -151,11 +153,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         inputView = root.findViewById(R.id.keyboard)
         inputView?.setOnKeyboardActionListener(this)
         inputView?.setPreviewEnabled(false)
-        setLatinKeyboard(qwertyKeyboard)
         reloadSettings()
+        setLatinKeyboard(qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
-        requestCandidateBarSync()
         return root
     }
 
@@ -176,13 +177,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onStartInputView(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(attribute, restarting)
         suppressExternalDeleteUntilDeleteReleased = false
-        setLatinKeyboard(curKeyboard)
         inputView?.closing()
         reloadSettings()
+        setLatinKeyboard(curKeyboard ?: qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
         updateUi()
-        requestCandidateBarSync()
     }
 
     override fun onCurrentInputMethodSubtypeChanged(subtype: InputMethodSubtype?) {
@@ -310,7 +310,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val ch = primaryCode.toChar()
 
         if (ch.isLetter()) {
-            rawBuffer.append(ch.toLowerCase())
+            val view = inputView
+            val isShifted = view?.isShifted == true
+            val base = ch.lowercaseChar()
+            val typed = if (isShifted) base.uppercaseChar() else base
+            rawBuffer.append(typed)
+            if (isShifted && !capsLock) {
+                view?.isShifted = false
+            }
             updateCandidates()
             updateUi()
             return
@@ -477,13 +484,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         if (reverseLookupState == ReverseLookupState.ACTIVE) return
 
         val rawText = rawBuffer.toString()
+        val normalizedRawText = rawText.lowercase(Locale.ROOT)
         val prefix =
             if (isReverseLookupEntering(rawText)) {
                 reverseLookupState = ReverseLookupState.ENTERING
-                rawText.substring(1)
+                normalizedRawText.substring(1)
             } else {
                 reverseLookupState = ReverseLookupState.NONE
-                rawText
+                normalizedRawText
             }
         prefixCandidates = engine.queryPrefix(prefix)
         exactCount = 0
@@ -559,38 +567,25 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         )
     }
 
-    private fun requestCandidateBarSync() {
-        val view = inputView ?: return
-        if (pendingCandidateBarSync) return
-        pendingCandidateBarSync = true
-        view.post {
-            pendingCandidateBarSync = false
-            syncCandidateBarToKeyboard(iterationsLeft = 3)
-        }
-    }
-
-    private fun syncCandidateBarToKeyboard(iterationsLeft: Int) {
-        val view = inputView ?: return
-        val bar = candidateBarView ?: return
-
-        val scale = view.getEffectiveHeightScale()
-        bar.setHeightScale(scale)
-
-        if (iterationsLeft <= 0) return
-        view.post {
-            val newScale = view.getEffectiveHeightScale()
-            if (abs(newScale - scale) > 0.01f) {
-                syncCandidateBarToKeyboard(iterationsLeft - 1)
-            }
-        }
-    }
-
     private fun reloadSettings() {
         val prefs = PreferenceManager.getDefaultSharedPreferences(this)
         keyboardHeightPercent = prefs.getInt(
             SettingsKeys.KEY_KEYBOARD_HEIGHT_PERCENT,
             SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT,
+        ).coerceAtLeast(SettingsKeys.MIN_KEYBOARD_HEIGHT_PERCENT)
+        swapDeleteAndApostrophe = prefs.getBoolean(
+            SettingsKeys.KEY_SWAP_DELETE_APOSTROPHE,
+            SettingsKeys.DEFAULT_SWAP_DELETE_APOSTROPHE,
         )
+        qwertyKeyboard =
+            if (swapDeleteAndApostrophe) {
+                qwertyKeyboardSwapped ?: qwertyKeyboardDefault
+            } else {
+                qwertyKeyboardDefault ?: qwertyKeyboardSwapped
+            }
+        if (curKeyboard === qwertyKeyboardDefault || curKeyboard === qwertyKeyboardSwapped) {
+            curKeyboard = qwertyKeyboard
+        }
         candidateInlineLimit = prefs.getInt(
             SettingsKeys.KEY_CANDIDATE_INLINE_LIMIT,
             SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT,
@@ -628,7 +623,6 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
         inputView?.keyboard = nextKeyboard
-        requestCandidateBarSync()
     }
 
     private fun getToken(): IBinder? {
@@ -657,8 +651,23 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val currentKeyboard = view.keyboard
 
         if (qwertyKeyboard === currentKeyboard) {
-            checkToggleCapsLock()
-            view.isShifted = capsLock || !view.isShifted
+            val now = System.currentTimeMillis()
+            if (capsLock) {
+                capsLock = false
+                lastShiftTime = 0
+                view.isShifted = false
+                return
+            }
+
+            val alreadyShifted = view.isShifted
+            if (alreadyShifted && lastShiftTime + 800 > now) {
+                capsLock = true
+                lastShiftTime = 0
+                view.isShifted = true
+            } else {
+                view.isShifted = !alreadyShifted
+                lastShiftTime = now
+            }
             return
         }
 
@@ -673,16 +682,6 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             symbolsShiftedKeyboard?.isShifted = false
             setLatinKeyboard(symbolsKeyboard)
             symbolsKeyboard?.isShifted = false
-        }
-    }
-
-    private fun checkToggleCapsLock() {
-        val now = System.currentTimeMillis()
-        if (lastShiftTime + 800 > now) {
-            capsLock = !capsLock
-            lastShiftTime = 0
-        } else {
-            lastShiftTime = now
         }
     }
 
