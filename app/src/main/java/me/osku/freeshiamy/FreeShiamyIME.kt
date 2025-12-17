@@ -26,9 +26,10 @@ import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
 import me.osku.freeshiamy.ui.CandidateBarView
 import kotlin.math.abs
+import java.util.Locale
 
 /**
- * FreeShiamy IME (嘸蝦米)
+ * FreeShiamy IME
  */
 class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListener {
 
@@ -43,6 +44,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var candidateInlineLimit: Int = SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT
     private var candidateMoreLimit: Int = SettingsKeys.DEFAULT_CANDIDATE_MORE_LIMIT
     private var keyboardHeightPercent: Int = SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT
+    private var showShortestCodeHint: Boolean = SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT
+    private var shortestCodeHintText: String? = null
 
     private var lastShiftTime: Long = 0
     private var capsLock = false
@@ -219,6 +222,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         // Intercept only when we have an input connection.
         val ic = currentInputConnection ?: return super.onKeyDown(keyCode, event)
 
+        val clearedHint = shortestCodeHintText != null
+        shortestCodeHintText = null
+
+        fun finish(result: Boolean): Boolean {
+            if (clearedHint && rawBuffer.isEmpty() && shortestCodeHintText == null) {
+                updateUi()
+            }
+            return result
+        }
+
         when (keyCode) {
             KeyEvent.KEYCODE_DEL -> {
                 if (event.repeatCount == 0) {
@@ -226,28 +239,28 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
                 }
                 if (suppressExternalDeleteUntilDeleteReleased || rawBuffer.isNotEmpty()) {
                     handleBackspace(ic)
-                    return true
+                    return finish(true)
                 }
             }
 
             KeyEvent.KEYCODE_SPACE -> {
                 handleSpace(ic)
-                return true
+                return finish(true)
             }
 
             KeyEvent.KEYCODE_ENTER -> {
                 handleEnter(ic)
-                return true
+                return finish(true)
             }
         }
 
         val unicodeChar = event.unicodeChar
         if (unicodeChar != 0 && !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
             handlePrimaryCode(unicodeChar)
-            return true
+            return finish(true)
         }
 
-        return super.onKeyDown(keyCode, event)
+        return finish(super.onKeyDown(keyCode, event))
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
@@ -265,6 +278,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun handlePrimaryCode(primaryCode: Int) {
         val ic = currentInputConnection ?: return
+        val clearedHint = shortestCodeHintText != null
+        shortestCodeHintText = null
 
         when (primaryCode) {
             Keyboard.KEYCODE_DELETE -> handleBackspace(ic)
@@ -275,14 +290,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             FreeShiamyKeyboardView.KEYCODE_OPTIONS -> {
                 openSettings()
             }
-            FreeShiamyKeyboardView.KEYCODE_INDENT -> {
-                handleIndent(ic)
-            }
 
             10 -> handleEnter(ic)
             32 -> handleSpace(ic)
             in 48..57 -> handleDigit(primaryCode, ic)
             else -> handleCharacter(primaryCode, ic)
+        }
+
+        if (clearedHint && rawBuffer.isEmpty() && shortestCodeHintText == null) {
+            updateUi()
         }
     }
 
@@ -389,7 +405,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             return
         }
         if (suppressExternalDeleteUntilDeleteReleased) return
-        keyDownUp(KeyEvent.KEYCODE_DEL)
+        sendKeyDownUp(ic, KeyEvent.KEYCODE_DEL)
     }
 
     private fun handleEnter(ic: InputConnection) {
@@ -405,24 +421,26 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         ic.commitText("\n", 1)
     }
 
-    private fun handleIndent(ic: InputConnection) {
-        if (rawBuffer.isNotEmpty()) {
-            commitRawBuffer(ic)
-        }
-        ic.commitText("    ", 1)
-    }
-
     private fun commitCandidate(entry: CinEntry) {
         val ic = currentInputConnection ?: return
+        val typedCode = rawBuffer.toString()
+        val isReverseCommit = reverseLookupState == ReverseLookupState.ACTIVE
+        val hintText = buildShortestCodeHintText(entry.value, typedCode, isReverseCommit)
         ic.commitText(entry.value, 1)
         clearState()
+        shortestCodeHintText = hintText
         updateUi()
     }
 
     private fun commitCandidateAt(index: Int, ic: InputConnection) {
         if (index < 0 || index >= exactCount) return
-        ic.commitText(prefixCandidates[index].value, 1)
+        val typedCode = rawBuffer.toString()
+        val isReverseCommit = reverseLookupState == ReverseLookupState.ACTIVE
+        val value = prefixCandidates[index].value
+        val hintText = buildShortestCodeHintText(value, typedCode, isReverseCommit)
+        ic.commitText(value, 1)
         clearState()
+        shortestCodeHintText = hintText
         updateUi()
     }
 
@@ -446,6 +464,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         exactCount = 0
         reverseLookupState = ReverseLookupState.NONE
         candidateBarView?.setExpanded(false)
+        shortestCodeHintText = null
     }
 
     private fun updateCandidates() {
@@ -528,13 +547,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun updateUi() {
         val rawText = rawBuffer.toString()
+        val hintText = if (showShortestCodeHint) shortestCodeHintText else null
         // Keep the candidate bar space reserved to avoid keyboard jumping (layout thrash).
-        val shouldShowCandidateBar = rawText.isNotEmpty()
+        val shouldShowCandidateBar = rawText.isNotEmpty() || !hintText.isNullOrBlank()
         candidateBarView?.visibility = if (shouldShowCandidateBar) View.VISIBLE else View.INVISIBLE
         candidateBarView?.setState(
             rawText = rawText,
             prefixCandidates = prefixCandidates,
             exactCount = exactCount,
+            hintText = hintText,
         )
     }
 
@@ -578,6 +599,28 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_CANDIDATE_MORE_LIMIT,
             SettingsKeys.DEFAULT_CANDIDATE_MORE_LIMIT,
         )
+        showShortestCodeHint = prefs.getBoolean(
+            SettingsKeys.KEY_SHOW_SHORTEST_CODE_HINT,
+            SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT,
+        )
+        if (!showShortestCodeHint) {
+            shortestCodeHintText = null
+        }
+    }
+
+    private fun buildShortestCodeHintText(value: String, typedCode: String, isReverseCommit: Boolean): String? {
+        if (!showShortestCodeHint) return null
+        if (value.codePointCount(0, value.length) != 1) return null
+
+        val engine = sharedEngine ?: return null
+        val shortestCode = engine.shortestCodeForValue(value) ?: return null
+
+        if (!isReverseCommit) {
+            if (typedCode.length <= 2) return null
+            if (shortestCode.length >= typedCode.length) return null
+        }
+
+        return "字根：${shortestCode.uppercase(Locale.ROOT)}"
     }
 
     private fun setLatinKeyboard(nextKeyboard: FreeShiamyKeyboard?) {
@@ -651,9 +694,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         inputView?.closing()
     }
 
-    private fun keyDownUp(keyEventCode: Int) {
-        currentInputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode))
-        currentInputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyEventCode))
+    private fun sendKeyDownUp(ic: InputConnection, keyEventCode: Int) {
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyEventCode))
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyEventCode))
     }
 
     private fun openSettings() {

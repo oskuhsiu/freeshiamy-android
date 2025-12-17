@@ -44,6 +44,19 @@
                 android:orientation="horizontal" />
         </HorizontalScrollView>
 
+        <TextView
+            android:id="@+id/hint_text"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.65"
+            android:ellipsize="end"
+            android:gravity="center_vertical|end"
+            android:maxLines="1"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="0dp"
+            android:textColor="@color/candidate_other"
+            android:visibility="gone" />
+
         <Button
             android:id="@+id/more_button"
             android:layout_width="wrap_content"

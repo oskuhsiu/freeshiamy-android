@@ -3,7 +3,9 @@ package me.osku.freeshiamy
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.View
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -17,8 +19,17 @@ class TestPanelActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_test_panel)
 
-        val input = findViewById<TextInputEditText>(R.id.test_input)
+        val singleInput = findViewById<TextInputEditText>(R.id.test_input_single)
+        val multiInput = findViewById<TextInputEditText>(R.id.test_input_multi)
         val status = findViewById<TextView>(R.id.ime_status)
+
+        fun focus(view: TextInputEditText) {
+            view.requestFocus()
+            view.post {
+                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(view, 0)
+            }
+        }
 
         fun refreshStatus() {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
@@ -31,6 +42,17 @@ class TestPanelActivity : AppCompatActivity() {
         }
 
         refreshStatus()
+
+        singleInput.setOnEditorActionListener { _, actionId, event ->
+            val isEnterKey =
+                event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP
+            val shouldJump =
+                isEnterKey || actionId == EditorInfo.IME_ACTION_NEXT || actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_SEND
+            if (!shouldJump) return@setOnEditorActionListener false
+
+            focus(multiInput)
+            true
+        }
 
         findViewById<MaterialButton>(R.id.btn_open_ime_settings).setOnClickListener {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -46,16 +68,13 @@ class TestPanelActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.btn_focus).setOnClickListener {
-            input.requestFocus()
-            input.post {
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-                imm.showSoftInput(input, 0)
-            }
+            focus(singleInput)
         }
 
         findViewById<MaterialButton>(R.id.btn_clear).setOnClickListener {
-            input.setText("")
-            input.requestFocus()
+            singleInput.setText("")
+            multiInput.setText("")
+            focus(singleInput)
         }
 
         findViewById<MaterialButton>(R.id.btn_refresh).setOnClickListener {
@@ -64,8 +83,7 @@ class TestPanelActivity : AppCompatActivity() {
 
         // Improve tap-to-focus on the whole panel.
         findViewById<View>(R.id.root).setOnClickListener {
-            input.requestFocus()
+            singleInput.requestFocus()
         }
     }
 }
-

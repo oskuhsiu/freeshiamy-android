@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">FreeShiamy</string>
-    <string name="ime_name">FreeShiamy 嘸蝦米</string>
+    <string name="ime_name">廢啥咪</string>
 
     <!-- Symbols that are commonly considered word separators in this language -->
     <string name="word_separators">\u0020.,;:!?\n()[]*&amp;@{}/&lt;&gt;_+=|&quot;</string>
@@ -13,7 +13,7 @@
     <!-- Labels for subtype -->
     <string name="label_subtype_generic">%s</string>
     <string name="label_subtype_en_GB">English (GB)</string>
-    <string name="label_subtype_shiamy">嘸蝦米</string>
+    <string name="label_subtype_shiamy">廢啥咪</string>
 
     <!-- Titles for ImePreference -->
     <string name="settings_name">FreeShiamy 設定</string>
@@ -23,12 +23,13 @@
 
     <!-- Test panel -->
     <string name="test_panel_title">測試面板</string>
-    <string name="test_panel_input_hint">在這裡輸入來測試鍵盤</string>
-    <string name="test_panel_instructions">快速驗收：\n• 輸入：ae␠（應上屏第一個 exact 候選，不送出空白）\n• 輸入：android␠app（無候選；應累積在原碼區，點原碼區才送出）\n• 有 exact 候選時：按 0-9 選字（0=第一個）\n• 原碼為空時：空白鍵送出真正空白</string>
+    <string name="test_panel_input_hint_single">單行測試區</string>
+    <string name="test_panel_input_hint_multi">多行測試區（用來測換行）</string>
+    <string name="test_panel_instructions">快速驗收：\n• 單行區按 Enter/送出：焦點應跳到多行區\n• 多行區按 Enter：應插入換行\n• 輸入：ae␠（應上屏第一個 exact 候選，不送出空白）\n• 輸入：android␠app（無候選；應累積在原碼區，點原碼區才送出）\n• 有 exact 候選時：按 0-9 選字（0=第一個）\n• 原碼為空時：空白鍵送出真正空白</string>
     <string name="test_panel_open_ime_settings">系統鍵盤管理（啟用/管理）</string>
     <string name="test_panel_show_ime_picker">切換鍵盤（選擇器）</string>
     <string name="test_panel_open_app_settings">開啟 FreeShiamy 設定</string>
-    <string name="test_panel_focus_and_show_keyboard">聚焦輸入框並顯示鍵盤</string>
+    <string name="test_panel_focus_and_show_keyboard">聚焦單行測試區並顯示鍵盤</string>
     <string name="test_panel_clear">清空</string>
     <string name="test_panel_refresh_status">刷新狀態</string>
 </resources>

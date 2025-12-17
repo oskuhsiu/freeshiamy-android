@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.GridLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -28,6 +29,8 @@ class CandidateBarView @JvmOverloads constructor(
 
     private val candidateBarRow: LinearLayout
     private val rawTextView: TextView
+    private val hintTextView: TextView
+    private val candidateScroll: HorizontalScrollView
     private val candidateContainer: LinearLayout
     private val moreButton: Button
     private val moreScroll: ScrollView
@@ -52,6 +55,8 @@ class CandidateBarView @JvmOverloads constructor(
 
         candidateBarRow = findViewById(R.id.candidate_bar_row)
         rawTextView = findViewById(R.id.raw_text)
+        hintTextView = findViewById(R.id.hint_text)
+        candidateScroll = findViewById(R.id.candidate_scroll)
         candidateContainer = findViewById(R.id.candidate_container)
         moreButton = findViewById(R.id.more_button)
         moreScroll = findViewById(R.id.more_scroll)
@@ -69,19 +74,37 @@ class CandidateBarView @JvmOverloads constructor(
         this.maxMoreItems = maxMoreItems.coerceAtLeast(this.inlineLimit)
     }
 
-    fun setState(rawText: String, prefixCandidates: List<CinEntry>, exactCount: Int) {
+    fun setState(rawText: String, prefixCandidates: List<CinEntry>, exactCount: Int, hintText: String? = null) {
         rawTextView.text = rawText
+
+        val shouldShowHint = rawText.isEmpty() && !hintText.isNullOrBlank()
+        if (shouldShowHint) {
+            hintTextView.text = hintText
+            hintTextView.visibility = View.VISIBLE
+            candidateScroll.visibility = View.GONE
+            moreButton.visibility = View.GONE
+            moreScroll.visibility = View.GONE
+            expanded = false
+            currentCandidates = emptyList()
+            currentExactCount = 0
+            candidateContainer.removeAllViews()
+            candidateGrid.removeAllViews()
+            return
+        }
+
+        hintTextView.visibility = View.GONE
+        candidateScroll.visibility = View.VISIBLE
         currentCandidates = prefixCandidates
         currentExactCount = exactCount.coerceIn(0, prefixCandidates.size)
-
-        renderInlineCandidates()
-        renderMoreButton()
 
         if (expanded && currentCandidates.isEmpty()) {
             setExpanded(false)
         } else if (expanded) {
             renderExpandedCandidates()
         }
+
+        renderInlineCandidates()
+        renderMoreButton()
     }
 
     fun setExpanded(expand: Boolean) {
@@ -137,6 +160,7 @@ class CandidateBarView @JvmOverloads constructor(
         autoSizeMinSp = (12f * safeScale).roundToInt().coerceAtLeast(8)
         autoSizeMaxSp = (18f * safeScale).roundToInt().coerceAtLeast(autoSizeMinSp)
         applyAutoSize(rawTextView)
+        applyAutoSize(hintTextView)
         applyAutoSize(moreButton)
 
         // Re-create buttons to apply the new sizing config.

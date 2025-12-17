@@ -29,13 +29,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="@string/test_panel_input_hint">
+            android:hint="@string/test_panel_input_hint_single">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/test_input"
+                android:id="@+id/test_input_single"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:imeOptions="flagNoPersonalizedLearning"
+                android:imeOptions="actionNext|flagNoPersonalizedLearning"
+                android:inputType="text|textNoSuggestions"
+                android:maxLines="1"
+                android:nextFocusDown="@id/test_input_multi"
+                android:singleLine="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/test_panel_input_hint_multi">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/test_input_multi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top|start"
+                android:imeOptions="actionNone|flagNoPersonalizedLearning"
                 android:inputType="textMultiLine|textNoSuggestions"
                 android:minLines="3" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -109,4 +127,3 @@
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
-

@@ -78,11 +78,6 @@ class FreeShiamyKeyboardView : KeyboardView {
                 getOnKeyboardActionListener().onKey(KEYCODE_OPTIONS, null)
                 true
             }
-            KEYCODE_INDENT -> {
-                // Long press on indent behaves like Enter/Return (newline or editor action).
-                getOnKeyboardActionListener().onKey(10, null)
-                true
-            }
             else -> super.onLongPress(key)
         }
     }
@@ -133,6 +128,5 @@ class FreeShiamyKeyboardView : KeyboardView {
     companion object{
         const val KEYCODE_OPTIONS = -100
         const val KEYCODE_LANGUAGE_SWITCH = -101
-        const val KEYCODE_INDENT = -102
     }
 }

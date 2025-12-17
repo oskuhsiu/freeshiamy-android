@@ -32,6 +32,12 @@
     <PreferenceCategory
         android:title="候選">
 
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="show_shortest_code_hint"
+            android:summary="上屏後在候選列右側顯示字根（含反查選字）"
+            android:title="提示字根" />
+
         <SeekBarPreference
             android:defaultValue="10"
             android:key="candidate_inline_limit"
