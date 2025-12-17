@@ -133,3 +133,4 @@ freeline_project_description.json
 
 plan/
 *.md
+!README.md

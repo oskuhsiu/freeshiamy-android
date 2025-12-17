@@ -17,6 +17,7 @@ class FreeShiamyKeyboardView : KeyboardView {
 
     private var requestedHeightScale: Float = 1f
     private var effectiveHeightScale: Float = 1f
+    private var softDeleteTouchDown: Boolean = false
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle)
@@ -57,9 +58,14 @@ class FreeShiamyKeyboardView : KeyboardView {
     }
 
     override fun onTouchEvent(me: MotionEvent): Boolean {
-        if (effectiveHeightScale == 1f) return super.onTouchEvent(me)
+        if (effectiveHeightScale == 1f) {
+            handleSoftDeleteTouch(me)
+            return super.onTouchEvent(me)
+        }
+
         val scaled = MotionEvent.obtain(me)
         scaled.setLocation(me.x, me.y / effectiveHeightScale)
+        handleSoftDeleteTouch(scaled)
         val handled = super.onTouchEvent(scaled)
         scaled.recycle()
         return handled
@@ -85,6 +91,43 @@ class FreeShiamyKeyboardView : KeyboardView {
         val keyboard: FreeShiamyKeyboard = getKeyboard() as FreeShiamyKeyboard
         keyboard.setSpaceIcon(getResources().getDrawable(subtype.iconResId))
         invalidateAllKeys()
+    }
+
+    private fun handleSoftDeleteTouch(event: MotionEvent) {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                softDeleteTouchDown = isDeleteKeyTouch(event.x, event.y)
+                if (softDeleteTouchDown) {
+                    notifyImeSoftDeleteTouch(isDown = true)
+                }
+            }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL,
+            -> {
+                if (softDeleteTouchDown) {
+                    notifyImeSoftDeleteTouch(isDown = false)
+                    softDeleteTouchDown = false
+                }
+            }
+        }
+    }
+
+    private fun notifyImeSoftDeleteTouch(isDown: Boolean) {
+        val listener = getOnKeyboardActionListener()
+        if (listener is FreeShiamyIME) {
+            listener.onSoftDeleteTouch(isDown)
+        }
+    }
+
+    private fun isDeleteKeyTouch(x: Float, y: Float): Boolean {
+        val kb = keyboard ?: return false
+        val xi = x.toInt()
+        val yi = y.toInt()
+        for (key in kb.keys) {
+            if (key.codes.getOrNull(0) != Keyboard.KEYCODE_DELETE) continue
+            if (key.isInside(xi, yi)) return true
+        }
+        return false
     }
 
     companion object{

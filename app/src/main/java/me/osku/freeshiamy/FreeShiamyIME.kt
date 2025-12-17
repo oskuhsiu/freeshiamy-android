@@ -54,6 +54,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private var pendingCandidateBarSync: Boolean = false
 
+    // When Backspace/Delete is held and rawBuffer had content at the start of the press,
+    // we must NOT continue deleting the editor text after rawBuffer becomes empty.
+    private var suppressExternalDeleteUntilDeleteReleased: Boolean = false
+
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
@@ -162,11 +166,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onFinishInput() {
         super.onFinishInput()
         clearState()
+        suppressExternalDeleteUntilDeleteReleased = false
         inputView?.closing()
     }
 
     override fun onStartInputView(attribute: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(attribute, restarting)
+        suppressExternalDeleteUntilDeleteReleased = false
         setLatinKeyboard(curKeyboard)
         inputView?.closing()
         reloadSettings()
@@ -215,7 +221,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         when (keyCode) {
             KeyEvent.KEYCODE_DEL -> {
-                if (rawBuffer.isNotEmpty()) {
+                if (event.repeatCount == 0) {
+                    suppressExternalDeleteUntilDeleteReleased = rawBuffer.isNotEmpty()
+                }
+                if (suppressExternalDeleteUntilDeleteReleased || rawBuffer.isNotEmpty()) {
                     handleBackspace(ic)
                     return true
                 }
@@ -239,6 +248,17 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DEL) {
+            suppressExternalDeleteUntilDeleteReleased = false
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+
+    internal fun onSoftDeleteTouch(isDown: Boolean) {
+        suppressExternalDeleteUntilDeleteReleased = isDown && rawBuffer.isNotEmpty()
     }
 
     // ---- Core logic ----
@@ -368,6 +388,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             updateUi()
             return
         }
+        if (suppressExternalDeleteUntilDeleteReleased) return
         keyDownUp(KeyEvent.KEYCODE_DEL)
     }
 
@@ -658,6 +679,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun swipeDown() {}
     override fun swipeUp() {}
     override fun onPress(primaryCode: Int) {}
+
     override fun onRelease(primaryCode: Int) {}
 
     companion object {
