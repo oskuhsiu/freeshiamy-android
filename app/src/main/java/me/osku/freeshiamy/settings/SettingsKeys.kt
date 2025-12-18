@@ -11,9 +11,12 @@ object SettingsKeys {
 
     const val KEY_SHOW_SHORTEST_CODE_HINT = "show_shortest_code_hint"
 
+    const val KEY_DISABLE_IME_IN_SENSITIVE_FIELDS = "disable_ime_in_sensitive_fields"
+
     const val DEFAULT_KEYBOARD_HEIGHT_PERCENT = 100
     const val DEFAULT_SWAP_DELETE_APOSTROPHE = false
     const val DEFAULT_CANDIDATE_INLINE_LIMIT = 10
     const val DEFAULT_CANDIDATE_MORE_LIMIT = 200
     const val DEFAULT_SHOW_SHORTEST_CODE_HINT = true
+    const val DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS = true
 }

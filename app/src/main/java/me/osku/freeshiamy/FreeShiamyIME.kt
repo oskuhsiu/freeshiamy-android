@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -45,6 +46,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var keyboardHeightPercent: Int = SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT
     private var showShortestCodeHint: Boolean = SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT
     private var shortestCodeHintText: String? = null
+    private var disableImeInSensitiveFields: Boolean = SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS
+    private var isInSensitiveField: Boolean = false
 
     private var lastShiftTime: Long = 0
     private var capsLock = false
@@ -163,6 +166,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
         clearState()
+        isInSensitiveField = disableImeInSensitiveFields && isSensitiveField(attribute)
         curKeyboard = qwertyKeyboard
         curKeyboard?.setImeOptions(resources, attribute.imeOptions)
     }
@@ -179,9 +183,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         suppressExternalDeleteUntilDeleteReleased = false
         inputView?.closing()
         reloadSettings()
+        isInSensitiveField = disableImeInSensitiveFields && isSensitiveField(attribute)
         setLatinKeyboard(curKeyboard ?: qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
+        if (isInSensitiveField) {
+            clearState()
+            updateUi()
+            mainHandler.post { exitImeForSensitiveFieldIfNeeded() }
+        }
         updateUi()
     }
 
@@ -310,6 +320,17 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val ch = primaryCode.toChar()
 
         if (ch.isLetter()) {
+            if (isInSensitiveField) {
+                val view = inputView
+                val isShifted = view?.isShifted == true
+                val base = ch.lowercaseChar()
+                val typed = if (isShifted) base.uppercaseChar() else base
+                ic.commitText(typed.toString(), 1)
+                if (isShifted && !capsLock) {
+                    view?.isShifted = false
+                }
+                return
+            }
             val view = inputView
             val isShifted = view?.isShifted == true
             val base = ch.lowercaseChar()
@@ -324,6 +345,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         if (isCodeSymbol(ch)) {
+            if (isInSensitiveField) {
+                ic.commitText(ch.toString(), 1)
+                return
+            }
             rawBuffer.append(ch)
             updateCandidates()
             updateUi()
@@ -601,6 +626,67 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         if (!showShortestCodeHint) {
             shortestCodeHintText = null
         }
+        disableImeInSensitiveFields = prefs.getBoolean(
+            SettingsKeys.KEY_DISABLE_IME_IN_SENSITIVE_FIELDS,
+            SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS,
+        )
+    }
+
+    private fun isSensitiveField(attribute: EditorInfo?): Boolean {
+        if (attribute == null) return false
+
+        val inputType = attribute.inputType
+        val klass = inputType and InputType.TYPE_MASK_CLASS
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+
+        val isPassword =
+            when (klass) {
+                InputType.TYPE_CLASS_TEXT -> {
+                    variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                        variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                        variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                }
+                InputType.TYPE_CLASS_NUMBER -> variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
+                else -> false
+            }
+        if (isPassword) return true
+
+        val hasNoPersonalizedLearning =
+            (attribute.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+        if (hasNoPersonalizedLearning) return true
+
+        val privateOpts = attribute.privateImeOptions
+        if (!privateOpts.isNullOrBlank()) {
+            val parts = privateOpts.split(',', ';', ' ')
+            if (parts.any { it == "freeshiamy:disable" || it == "freeshiamy:disable=true" }) return true
+        }
+
+        return false
+    }
+
+    private fun exitImeForSensitiveFieldIfNeeded() {
+        if (!isInSensitiveField) return
+
+        val imm = inputMethodManager ?: return
+        val token = getToken()
+        if (token != null) {
+            try {
+                val offered = imm.shouldOfferSwitchingToNextInputMethod(token)
+                if (offered) {
+                    imm.switchToNextInputMethod(token, false /* onlyCurrentIme */)
+                    return
+                }
+            } catch (_: Exception) {
+                // Ignore and fall back to showing picker / hiding self.
+            }
+        }
+
+        try {
+            imm.showInputMethodPicker()
+        } catch (_: Exception) {
+            // ignore
+        }
+        requestHideSelf(0)
     }
 
     private fun buildShortestCodeHintText(value: String, typedCode: String, isReverseCommit: Boolean): String? {

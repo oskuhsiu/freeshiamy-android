@@ -60,4 +60,15 @@
             android:title="更多列表最大顯示筆數" />
 
     </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="隱私">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="disable_ime_in_sensitive_fields"
+            android:summary="在密碼欄位或標記為「不允許個人化學習」的欄位，自動切換到其他輸入法（或顯示輸入法選擇器）"
+            android:title="在密碼/隱私欄位停用此輸入法" />
+
+    </PreferenceCategory>
 </PreferenceScreen>
