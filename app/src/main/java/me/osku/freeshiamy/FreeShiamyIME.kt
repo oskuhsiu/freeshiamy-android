@@ -47,6 +47,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var showShortestCodeHint: Boolean = SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT
     private var shortestCodeHintText: String? = null
     private var disableImeInSensitiveFields: Boolean = SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS
+    private var sensitiveIncludeNoPersonalizedLearning: Boolean =
+        SettingsKeys.DEFAULT_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING
     private var isInSensitiveField: Boolean = false
 
     private var lastShiftTime: Long = 0
@@ -630,6 +632,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_DISABLE_IME_IN_SENSITIVE_FIELDS,
             SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS,
         )
+        sensitiveIncludeNoPersonalizedLearning = prefs.getBoolean(
+            SettingsKeys.KEY_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING,
+            SettingsKeys.DEFAULT_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING,
+        )
     }
 
     private fun isSensitiveField(attribute: EditorInfo?): Boolean {
@@ -651,9 +657,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             }
         if (isPassword) return true
 
-        val hasNoPersonalizedLearning =
-            (attribute.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
-        if (hasNoPersonalizedLearning) return true
+        if (sensitiveIncludeNoPersonalizedLearning) {
+            val hasNoPersonalizedLearning =
+                (attribute.imeOptions and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+            if (hasNoPersonalizedLearning) return true
+        }
 
         val privateOpts = attribute.privateImeOptions
         if (!privateOpts.isNullOrBlank()) {
@@ -669,16 +677,18 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         val imm = inputMethodManager ?: return
         val token = getToken()
-        if (token != null) {
-            try {
-                val offered = imm.shouldOfferSwitchingToNextInputMethod(token)
-                if (offered) {
-                    imm.switchToNextInputMethod(token, false /* onlyCurrentIme */)
-                    return
-                }
-            } catch (_: Exception) {
-                // Ignore and fall back to showing picker / hiding self.
+        if (token == null) {
+            mainHandler.postDelayed({ exitImeForSensitiveFieldIfNeeded() }, 50L)
+            return
+        }
+        try {
+            val offered = imm.shouldOfferSwitchingToNextInputMethod(token)
+            if (offered) {
+                imm.switchToNextInputMethod(token, false /* onlyCurrentIme */)
+                return
             }
+        } catch (_: Exception) {
+            // Ignore and fall back to showing picker / hiding self.
         }
 
         try {
