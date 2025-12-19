@@ -6,9 +6,7 @@ import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
 import android.util.AttributeSet
 import android.view.MotionEvent
-import android.view.inputmethod.InputMethodSubtype
 import kotlin.math.roundToInt
-
 
 /**
  * Created by Osku on 2021/4/9.
@@ -29,8 +27,6 @@ class FreeShiamyKeyboardView : KeyboardView {
         requestLayout()
         invalidate()
     }
-
-    fun getEffectiveHeightScale(): Float = effectiveHeightScale
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
@@ -80,12 +76,6 @@ class FreeShiamyKeyboardView : KeyboardView {
             }
             else -> super.onLongPress(key)
         }
-    }
-
-    fun setSubtypeOnSpaceKey(subtype: InputMethodSubtype) {
-        val keyboard: FreeShiamyKeyboard = getKeyboard() as FreeShiamyKeyboard
-        keyboard.setSpaceIcon(getResources().getDrawable(subtype.iconResId))
-        invalidateAllKeys()
     }
 
     private fun handleSoftDeleteTouch(event: MotionEvent) {

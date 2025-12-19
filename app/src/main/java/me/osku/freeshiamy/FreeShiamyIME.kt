@@ -319,6 +319,17 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
     }
 
+    private fun applyShiftToLetter(ch: Char): Char {
+        val view = inputView
+        val isShifted = view?.isShifted == true
+        val base = ch.lowercaseChar()
+        val typed = if (isShifted) base.uppercaseChar() else base
+        if (isShifted && !capsLock) {
+            view?.isShifted = false
+        }
+        return typed
+    }
+
     private fun handleCharacter(primaryCode: Int, ic: InputConnection) {
         if (reverseLookupState == ReverseLookupState.ACTIVE) {
             cancelReverseLookup()
@@ -327,25 +338,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val ch = primaryCode.toChar()
 
         if (ch.isLetter()) {
+            val typed = applyShiftToLetter(ch)
             if (isInSensitiveField) {
-                val view = inputView
-                val isShifted = view?.isShifted == true
-                val base = ch.lowercaseChar()
-                val typed = if (isShifted) base.uppercaseChar() else base
                 ic.commitText(typed.toString(), 1)
-                if (isShifted && !capsLock) {
-                    view?.isShifted = false
-                }
                 return
             }
-            val view = inputView
-            val isShifted = view?.isShifted == true
-            val base = ch.lowercaseChar()
-            val typed = if (isShifted) base.uppercaseChar() else base
             rawBuffer.append(typed)
-            if (isShifted && !capsLock) {
-                view?.isShifted = false
-            }
             updateCandidates()
             updateUi()
             return
@@ -464,10 +462,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val ic = currentInputConnection ?: return
         val typedCode = rawBuffer.toString()
         val isReverseCommit = reverseLookupState == ReverseLookupState.ACTIVE
-        val hintText = buildShortestCodeHintText(entry.value, typedCode, isReverseCommit)
-        ic.commitText(entry.value, 1)
-        clearState()
-        shortestCodeHintText = hintText
+        commitValue(entry.value, typedCode, isReverseCommit, ic)
         updateUi()
     }
 
@@ -476,11 +471,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val typedCode = rawBuffer.toString()
         val isReverseCommit = reverseLookupState == ReverseLookupState.ACTIVE
         val value = prefixCandidates[index].value
+        commitValue(value, typedCode, isReverseCommit, ic)
+        updateUi()
+    }
+
+    private fun commitValue(value: String, typedCode: String, isReverseCommit: Boolean, ic: InputConnection) {
         val hintText = buildShortestCodeHintText(value, typedCode, isReverseCommit)
         ic.commitText(value, 1)
         clearState()
         shortestCodeHintText = hintText
-        updateUi()
     }
 
     private fun commitRawBuffer() {
