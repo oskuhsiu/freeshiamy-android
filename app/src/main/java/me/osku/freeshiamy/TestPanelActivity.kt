@@ -20,6 +20,7 @@ class TestPanelActivity : AppCompatActivity() {
         setContentView(R.layout.activity_test_panel)
 
         val singleInput = findViewById<TextInputEditText>(R.id.test_input_single)
+        val privateInput = findViewById<TextInputEditText>(R.id.test_input_private)
         val multiInput = findViewById<TextInputEditText>(R.id.test_input_multi)
         val status = findViewById<TextView>(R.id.ime_status)
 
@@ -73,6 +74,7 @@ class TestPanelActivity : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.btn_clear).setOnClickListener {
             singleInput.setText("")
+            privateInput.setText("")
             multiInput.setText("")
             focus(singleInput)
         }

@@ -38,7 +38,25 @@
                 android:imeOptions="actionNext|flagNoPersonalizedLearning"
                 android:inputType="text|textNoSuggestions"
                 android:maxLines="1"
+                android:nextFocusDown="@id/test_input_private"
+                android:singleLine="true" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="@string/test_panel_input_hint_private">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/test_input_private"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionNext"
+                android:inputType="text|textNoSuggestions"
+                android:maxLines="1"
                 android:nextFocusDown="@id/test_input_multi"
+                android:privateImeOptions="freeshiamy:disable"
                 android:singleLine="true" />
         </com.google.android.material.textfield.TextInputLayout>
 

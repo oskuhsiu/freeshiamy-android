@@ -2,7 +2,6 @@
 .DS_Store
 .AppleDouble
 .LSOverride 
-.android-home/
 
 # Files that might appear in the root of a volume
 .DocumentRevisions-V100
@@ -130,6 +129,10 @@ google-services.json
 freeline.py
 freeline/
 freeline_project_description.json
+
+.android-home/
+.gradle-home/
+.gradle-user-home/
 
 plan/
 *.md

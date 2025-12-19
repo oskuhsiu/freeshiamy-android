@@ -337,6 +337,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         val ch = primaryCode.toChar()
 
+        if (isSymbolsKeyboardActive()) {
+            ic.commitText(ch.toString(), 1)
+            return
+        }
+
         if (ch.isLetter()) {
             val typed = applyShiftToLetter(ch)
             if (isInSensitiveField) {
@@ -407,6 +412,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             return
         }
 
+        if (isSymbolsKeyboardActive()) {
+            ic.commitText(primaryCode.toChar().toString(), 1)
+            return
+        }
+
         if (isReverseLookupEntering(rawBuffer.toString()) && exactCount > 0) {
             triggerReverseLookup(digitIndex)
             return
@@ -448,6 +458,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private fun handleEnter(ic: InputConnection) {
         if (rawBuffer.isNotEmpty()) {
             commitRawBuffer(ic)
+            updateUi()
         }
 
         val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
@@ -796,6 +807,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
         requestHideSelf(0)
         inputView?.closing()
+    }
+
+    private fun isSymbolsKeyboardActive(): Boolean {
+        val currentKeyboard = inputView?.keyboard
+        return currentKeyboard === symbolsKeyboard || currentKeyboard === symbolsShiftedKeyboard
     }
 
     private fun sendKeyDownUp(ic: InputConnection, keyEventCode: Int) {
