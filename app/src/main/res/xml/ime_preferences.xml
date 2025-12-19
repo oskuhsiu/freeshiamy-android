@@ -28,11 +28,19 @@
             app:min="90"
             android:title="鍵盤高度（%）" />
 
+        <ListPreference
+            android:defaultValue="standard"
+            android:entries="@array/keyboard_layout_entries"
+            android:entryValues="@array/keyboard_layout_entry_values"
+            android:key="keyboard_layout"
+            android:title="鍵盤排版"
+            app:useSimpleSummaryProvider="true" />
+
         <SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="swap_delete_apostrophe"
-            android:summary="把字母區右側的刪除鍵與「'」鍵互換位置"
-            android:title="交換刪除鍵與「'」鍵" />
+            android:defaultValue="true"
+            android:key="show_number_row"
+            android:summary="顯示最上方的 1~0 數字列"
+            android:title="顯示數字列" />
 
     </PreferenceCategory>
 

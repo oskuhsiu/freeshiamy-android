@@ -56,11 +56,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private var symbolsKeyboard: FreeShiamyKeyboard? = null
     private var symbolsShiftedKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyKeyboardDefault: FreeShiamyKeyboard? = null
-    private var qwertyKeyboardSwapped: FreeShiamyKeyboard? = null
+    private var qwertyOriginalKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyOriginalKeyboardNoNumber: FreeShiamyKeyboard? = null
+    private var qwertyStandardKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyStandardKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
-    private var swapDeleteAndApostrophe: Boolean = SettingsKeys.DEFAULT_SWAP_DELETE_APOSTROPHE
+    private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
+    private var showNumberRow: Boolean = SettingsKeys.DEFAULT_SHOW_NUMBER_ROW
 
     // When Backspace/Delete is held and rawBuffer had content at the start of the press,
     // we must NOT continue deleting the editor text after rawBuffer becomes empty.
@@ -125,9 +128,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onInitializeInterface() {
         val displayContext: Context = getDisplayContextCompat()
-        qwertyKeyboardDefault = FreeShiamyKeyboard(displayContext, R.xml.qwerty)
-        qwertyKeyboardSwapped = FreeShiamyKeyboard(displayContext, R.xml.qwerty_swap)
-        qwertyKeyboard = qwertyKeyboardDefault
+        qwertyOriginalKeyboard = FreeShiamyKeyboard(displayContext, R.xml.qwerty_original)
+        qwertyOriginalKeyboardNoNumber = FreeShiamyKeyboard(displayContext, R.xml.qwerty_original_no_number)
+        qwertyStandardKeyboard = FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard)
+        qwertyStandardKeyboardNoNumber = FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard_no_number)
+        qwertyKeyboard = qwertyStandardKeyboard
         symbolsKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols)
         symbolsShiftedKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols_shift)
     }
@@ -600,17 +605,22 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_KEYBOARD_HEIGHT_PERCENT,
             SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT,
         ).coerceAtLeast(SettingsKeys.MIN_KEYBOARD_HEIGHT_PERCENT)
-        swapDeleteAndApostrophe = prefs.getBoolean(
-            SettingsKeys.KEY_SWAP_DELETE_APOSTROPHE,
-            SettingsKeys.DEFAULT_SWAP_DELETE_APOSTROPHE,
-        )
+        keyboardLayout = prefs.getString(SettingsKeys.KEY_KEYBOARD_LAYOUT, SettingsKeys.DEFAULT_KEYBOARD_LAYOUT)
+            ?: SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
+        showNumberRow = prefs.getBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, SettingsKeys.DEFAULT_SHOW_NUMBER_ROW)
+
         qwertyKeyboard =
-            if (swapDeleteAndApostrophe) {
-                qwertyKeyboardSwapped ?: qwertyKeyboardDefault
-            } else {
-                qwertyKeyboardDefault ?: qwertyKeyboardSwapped
+            when (keyboardLayout) {
+                "original" -> if (showNumberRow) qwertyOriginalKeyboard else qwertyOriginalKeyboardNoNumber
+                else -> if (showNumberRow) qwertyStandardKeyboard else qwertyStandardKeyboardNoNumber
             }
-        if (curKeyboard === qwertyKeyboardDefault || curKeyboard === qwertyKeyboardSwapped) {
+
+        if (
+            curKeyboard === qwertyOriginalKeyboard ||
+            curKeyboard === qwertyOriginalKeyboardNoNumber ||
+            curKeyboard === qwertyStandardKeyboard ||
+            curKeyboard === qwertyStandardKeyboardNoNumber
+        ) {
             curKeyboard = qwertyKeyboard
         }
         candidateInlineLimit = prefs.getInt(
