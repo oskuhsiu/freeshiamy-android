@@ -9,7 +9,7 @@
     <LinearLayout
         android:id="@+id/candidate_bar_row"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/key_height"
+        android:layout_height="@dimen/candidate_bar_height"
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp"

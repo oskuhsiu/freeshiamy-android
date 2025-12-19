@@ -42,12 +42,14 @@ class CandidateBarView @JvmOverloads constructor(
     private var inlineLimit: Int = 10
     private var maxMoreItems: Int = 200
 
-    private val baseRowHeightPx: Int by lazy { resources.getDimensionPixelSize(R.dimen.key_height) }
+    private val baseRowHeightPx: Int by lazy { resources.getDimensionPixelSize(R.dimen.candidate_bar_height) }
     private var headerRowHeightPx: Int = 0
     private var autoSizeMinSp: Int = 12
-    private var autoSizeMaxSp: Int = 18
-    private val candidateButtonHorizontalPaddingPx: Int = (16 * 0.6f).roundToInt()
-    private val candidateButtonHorizontalMarginPx: Int = (6 * 0.6f).roundToInt()
+    private var autoSizeMaxSp: Int = 24
+
+    // Make candidate buttons more compact (60% of current visual width).
+    private val candidateButtonWidthScale: Float = 0.6f
+    private val candidateButtonHorizontalMarginPx: Int by lazy { dpToPx(1f * candidateButtonWidthScale) }
 
     var listener: Listener? = null
 
@@ -67,7 +69,7 @@ class CandidateBarView @JvmOverloads constructor(
         rawTextView.setOnClickListener { listener?.onRawClick() }
         moreButton.setOnClickListener { setExpanded(!expanded) }
 
-        // Default to 1x keyboard row height so the top view matches a key row out of the box.
+        // Default to the configured candidate bar height (typically smaller than a key row).
         setHeightScale(1f)
     }
 
@@ -180,13 +182,30 @@ class CandidateBarView @JvmOverloads constructor(
         )
     }
 
+    private fun dpToPx(dp: Float): Int {
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).roundToInt()
+            .coerceAtLeast(0)
+    }
+
     private fun createCandidateButton(entry: CinEntry, index: Int): Button {
         val button = Button(context)
         button.text = entry.value
         button.isAllCaps = false
         button.minWidth = 0
         button.minHeight = 0
-        button.setPadding(candidateButtonHorizontalPaddingPx, 0, candidateButtonHorizontalPaddingPx, 0)
+
+        // Shrink the "pill" width by scaling the style-provided padding + minWidth.
+        // This is more robust than hard-coding dp values because Material/AppCompat styles vary by device/theme.
+        val baseMinWidth = maxOf(button.minWidth, button.minimumWidth)
+        val scaledMinWidth = (baseMinWidth * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
+        button.minWidth = scaledMinWidth
+        button.minimumWidth = scaledMinWidth
+        button.setMinWidth(scaledMinWidth)
+        button.setMinimumWidth(scaledMinWidth)
+
+        val scaledPaddingLeft = (button.paddingLeft * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
+        val scaledPaddingRight = (button.paddingRight * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
+        button.setPadding(scaledPaddingLeft, 0, scaledPaddingRight, 0)
         applyAutoSize(button)
 
         val normal = resources.getColor(R.color.candidate_normal)
