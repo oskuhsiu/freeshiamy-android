@@ -2,6 +2,8 @@ package me.osku.freeshiamy
 
 import android.content.Context
 import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
 import android.util.AttributeSet
@@ -16,15 +18,35 @@ class FreeShiamyKeyboardView : KeyboardView {
     private var requestedHeightScale: Float = 1f
     private var effectiveHeightScale: Float = 1f
     private var softDeleteTouchDown: Boolean = false
+    private var labelTopAligned: Boolean = false
+    private var labelTopPaddingPx: Int = 0
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val labelCache = ArrayList<CharSequence?>(64)
+    private var keyTextSizePx: Int = 0
+    private var labelTextSizePx: Int = 0
+    private var keyTextColor: Int = Color.WHITE
+    private var shadowColor: Int = 0
+    private var shadowRadius: Float = 0f
 
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
-    constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle)
+    constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
+        initLabelPaint(context, attrs)
+    }
+
+    constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle) {
+        initLabelPaint(context, attrs)
+    }
 
     fun setHeightScale(scale: Float) {
         val newScale = scale.coerceIn(0.9f, 2.2f)
         if (newScale == requestedHeightScale) return
         requestedHeightScale = newScale
         requestLayout()
+        invalidate()
+    }
+
+    fun setLabelTopAligned(enabled: Boolean) {
+        if (labelTopAligned == enabled) return
+        labelTopAligned = enabled
         invalidate()
     }
 
@@ -43,13 +65,15 @@ class FreeShiamyKeyboardView : KeyboardView {
     }
 
     override fun onDraw(canvas: Canvas) {
-        if (effectiveHeightScale == 1f) {
-            super.onDraw(canvas)
-            return
-        }
         val saveCount = canvas.save()
-        canvas.scale(1f, effectiveHeightScale)
-        super.onDraw(canvas)
+        if (effectiveHeightScale != 1f) {
+            canvas.scale(1f, effectiveHeightScale)
+        }
+        if (labelTopAligned) {
+            drawWithTopLabels(canvas)
+        } else {
+            super.onDraw(canvas)
+        }
         canvas.restoreToCount(saveCount)
     }
 
@@ -113,6 +137,72 @@ class FreeShiamyKeyboardView : KeyboardView {
             if (key.isInside(xi, yi)) return true
         }
         return false
+    }
+
+    private fun initLabelPaint(context: Context, attrs: AttributeSet) {
+        val a = context.obtainStyledAttributes(attrs, R.styleable.FreeShiamyKeyboardView)
+        keyTextSizePx = a.getDimensionPixelSize(R.styleable.FreeShiamyKeyboardView_android_keyTextSize, 0)
+        labelTextSizePx =
+            a.getDimensionPixelSize(R.styleable.FreeShiamyKeyboardView_android_labelTextSize, keyTextSizePx)
+        keyTextColor = a.getColor(R.styleable.FreeShiamyKeyboardView_android_keyTextColor, Color.WHITE)
+        shadowColor = a.getColor(R.styleable.FreeShiamyKeyboardView_android_shadowColor, 0)
+        shadowRadius = a.getDimension(R.styleable.FreeShiamyKeyboardView_android_shadowRadius, 0f)
+        a.recycle()
+
+        if (keyTextSizePx == 0) {
+            keyTextSizePx = (18f * resources.displayMetrics.scaledDensity).roundToInt()
+        }
+        if (labelTextSizePx == 0) {
+            labelTextSizePx = (14f * resources.displayMetrics.scaledDensity).roundToInt()
+        }
+
+        labelTopPaddingPx = resources.getDimensionPixelOffset(R.dimen.key_label_top_padding)
+        labelPaint.textAlign = Paint.Align.CENTER
+        labelPaint.color = keyTextColor
+    }
+
+    private fun drawWithTopLabels(canvas: Canvas) {
+        val kb = keyboard
+        if (kb == null) {
+            super.onDraw(canvas)
+            return
+        }
+
+        val keys = kb.keys
+        labelCache.clear()
+        labelCache.ensureCapacity(keys.size)
+        for (key in keys) {
+            labelCache.add(key.label)
+            if (key.label != null) {
+                key.label = null
+            }
+        }
+        try {
+            super.onDraw(canvas)
+        } finally {
+            for (i in keys.indices) {
+                keys[i].label = labelCache[i]
+            }
+        }
+
+        drawTopLabels(canvas, keys)
+    }
+
+    private fun drawTopLabels(canvas: Canvas, keys: List<Keyboard.Key>) {
+        labelPaint.color = keyTextColor
+        labelPaint.setShadowLayer(shadowRadius, 0f, 0f, shadowColor)
+
+        for (key in keys) {
+            val label = key.label ?: continue
+            val labelText = label.toString()
+            if (labelText.isBlank()) continue
+
+            labelPaint.textSize = if (labelText.length > 1) labelTextSizePx.toFloat() else keyTextSizePx.toFloat()
+            val fm = labelPaint.fontMetrics
+            val x = key.x + key.width / 2f
+            val y = key.y + labelTopPaddingPx - fm.ascent
+            canvas.drawText(labelText, x, y, labelPaint)
+        }
     }
 
     companion object{

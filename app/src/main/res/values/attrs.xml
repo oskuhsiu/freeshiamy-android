@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="FreeShiamyKeyboardView">
+        <attr name="android:keyTextSize" />
+        <attr name="android:labelTextSize" />
+        <attr name="android:keyTextColor" />
+        <attr name="android:shadowColor" />
+        <attr name="android:shadowRadius" />
+    </declare-styleable>
+</resources>

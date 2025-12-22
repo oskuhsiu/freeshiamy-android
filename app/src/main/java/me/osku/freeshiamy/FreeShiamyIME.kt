@@ -60,6 +60,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var qwertyOriginalKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyStandardKeyboard: FreeShiamyKeyboard? = null
     private var qwertyStandardKeyboardNoNumber: FreeShiamyKeyboard? = null
+    private var qwertyStandardSpaciousKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyStandardSpaciousKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
     private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
@@ -132,6 +134,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         qwertyOriginalKeyboardNoNumber = FreeShiamyKeyboard(displayContext, R.xml.qwerty_original_no_number)
         qwertyStandardKeyboard = FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard)
         qwertyStandardKeyboardNoNumber = FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard_no_number)
+        qwertyStandardSpaciousKeyboard = FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard_spacious)
+        qwertyStandardSpaciousKeyboardNoNumber =
+            FreeShiamyKeyboard(displayContext, R.xml.qwerty_standard_spacious_no_number)
         qwertyKeyboard = qwertyStandardKeyboard
         symbolsKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols)
         symbolsShiftedKeyboard = FreeShiamyKeyboard(displayContext, R.xml.symbols_shift)
@@ -459,6 +464,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         if (rawBuffer.isNotEmpty()) {
             commitRawBuffer(ic)
             updateUi()
+            return
         }
 
         val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
@@ -622,6 +628,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         qwertyKeyboard =
             when (keyboardLayout) {
                 "original" -> if (showNumberRow) qwertyOriginalKeyboard else qwertyOriginalKeyboardNoNumber
+                "standard_spacious" ->
+                    if (showNumberRow) qwertyStandardSpaciousKeyboard else qwertyStandardSpaciousKeyboardNoNumber
+                "standard_label_top" -> if (showNumberRow) qwertyStandardKeyboard else qwertyStandardKeyboardNoNumber
                 else -> if (showNumberRow) qwertyStandardKeyboard else qwertyStandardKeyboardNoNumber
             }
 
@@ -629,10 +638,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             curKeyboard === qwertyOriginalKeyboard ||
             curKeyboard === qwertyOriginalKeyboardNoNumber ||
             curKeyboard === qwertyStandardKeyboard ||
-            curKeyboard === qwertyStandardKeyboardNoNumber
+            curKeyboard === qwertyStandardKeyboardNoNumber ||
+            curKeyboard === qwertyStandardSpaciousKeyboard ||
+            curKeyboard === qwertyStandardSpaciousKeyboardNoNumber
         ) {
             curKeyboard = qwertyKeyboard
         }
+        inputView?.setLabelTopAligned(keyboardLayout == "standard_label_top")
         candidateInlineLimit = prefs.getInt(
             SettingsKeys.KEY_CANDIDATE_INLINE_LIMIT,
             SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT,

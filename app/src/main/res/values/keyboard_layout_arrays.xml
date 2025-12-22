@@ -2,12 +2,15 @@
 <resources>
     <string-array name="keyboard_layout_entries">
         <item>Standard（標準）</item>
+        <item>Standard（間距加大）</item>
+        <item>Standard（文字靠上）</item>
         <item>Original（原始）</item>
     </string-array>
 
     <string-array name="keyboard_layout_entry_values">
         <item>standard</item>
+        <item>standard_spacious</item>
+        <item>standard_label_top</item>
         <item>original</item>
     </string-array>
 </resources>
-
