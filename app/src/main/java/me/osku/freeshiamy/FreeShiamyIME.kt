@@ -56,6 +56,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private var symbolsKeyboard: FreeShiamyKeyboard? = null
     private var symbolsShiftedKeyboard: FreeShiamyKeyboard? = null
+    private var emojiKeyboard: FreeShiamyKeyboard? = null
     private var qwertyOriginalKeyboard: FreeShiamyKeyboard? = null
     private var qwertyOriginalKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyStandardKeyboard: FreeShiamyKeyboard? = null
@@ -140,6 +141,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         qwertyKeyboard = null
         symbolsKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
         symbolsShiftedKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
+        emojiKeyboard = null
         curKeyboard = null
     }
 
@@ -234,8 +236,29 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onText(text: CharSequence?) {
         if (text.isNullOrEmpty()) return
+        val ic = currentInputConnection ?: return
+        val clearedHint = shortestCodeHintText != null
+        shortestCodeHintText = null
+
+        val shouldDirectCommit =
+            inputView?.keyboard === emojiKeyboard || text.length != 1 || containsSurrogate(text)
+        if (shouldDirectCommit) {
+            if (reverseLookupState == ReverseLookupState.ACTIVE) {
+                cancelReverseLookup()
+            }
+            ic.commitText(text, 1)
+            if (clearedHint && rawBuffer.isEmpty() && shortestCodeHintText == null) {
+                updateUi()
+            }
+            return
+        }
+
         for (c in text) {
-            handlePrimaryCode(c.toInt())
+            handlePrimaryCode(c.code)
+        }
+
+        if (clearedHint && rawBuffer.isEmpty() && shortestCodeHintText == null) {
+            updateUi()
         }
     }
 
@@ -310,6 +333,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             Keyboard.KEYCODE_CANCEL -> handleClose()
             Keyboard.KEYCODE_MODE_CHANGE -> handleModeChange()
             FreeShiamyKeyboardView.KEYCODE_LANGUAGE_SWITCH -> handleLanguageSwitch()
+            FreeShiamyKeyboardView.KEYCODE_EMOJI -> handleEmojiSwitch()
             FreeShiamyKeyboardView.KEYCODE_OPTIONS -> {
                 openSettings()
             }
@@ -772,13 +796,26 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val current = view.keyboard
         val symbols = symbolsKeyboard
         val symbolsShifted = symbolsShiftedKeyboard
-        if (current === symbols || current === symbolsShifted) {
+        if (current === symbols || current === symbolsShifted || current === emojiKeyboard) {
             setLatinKeyboard(qwertyKeyboard)
         } else {
             val target = symbols ?: getSymbolsKeyboard()
             setLatinKeyboard(target)
             target.isShifted = false
         }
+    }
+
+    private fun handleEmojiSwitch() {
+        val view = inputView ?: return
+        val current = view.keyboard
+        val emoji = emojiKeyboard
+        if (current === emoji) {
+            setLatinKeyboard(qwertyKeyboard)
+            return
+        }
+        val target = emoji ?: getEmojiKeyboard()
+        setLatinKeyboard(target)
+        target.isShifted = false
     }
 
     private fun handleLanguageSwitch() {
@@ -836,7 +873,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun isSymbolsKeyboardActive(): Boolean {
         val currentKeyboard = inputView?.keyboard
-        return currentKeyboard === symbolsKeyboard || currentKeyboard === symbolsShiftedKeyboard
+        return currentKeyboard === symbolsKeyboard ||
+            currentKeyboard === symbolsShiftedKeyboard ||
+            currentKeyboard === emojiKeyboard
+    }
+
+    private fun containsSurrogate(text: CharSequence): Boolean {
+        for (i in 0 until text.length) {
+            if (Character.isSurrogate(text[i])) return true
+        }
+        return false
     }
 
     private fun requireDisplayContext(): Context {
@@ -908,6 +954,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         if (cached != null) return cached
         val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
         symbolsShiftedKeyboard = created
+        return created
+    }
+
+    private fun getEmojiKeyboard(): FreeShiamyKeyboard {
+        val cached = emojiKeyboard
+        if (cached != null) return cached
+        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.emoji)
+        emojiKeyboard = created
         return created
     }
 

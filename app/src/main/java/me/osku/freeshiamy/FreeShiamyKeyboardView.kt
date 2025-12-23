@@ -22,6 +22,7 @@ class FreeShiamyKeyboardView : KeyboardView {
     private var labelTopPaddingPx: Int = 0
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val labelCache = ArrayList<CharSequence?>(64)
+    private val invalidateLabelCache = ArrayList<CharSequence?>(64)
     private var keyTextSizePx: Int = 0
     private var labelTextSizePx: Int = 0
     private var keyTextColor: Int = Color.WHITE
@@ -77,6 +78,16 @@ class FreeShiamyKeyboardView : KeyboardView {
         canvas.restoreToCount(saveCount)
     }
 
+    override fun invalidateKey(keyIndex: Int) {
+        if (!labelTopAligned) {
+            super.invalidateKey(keyIndex)
+            return
+        }
+        withLabelsSuppressed(invalidateLabelCache) {
+            super.invalidateKey(keyIndex)
+        }
+    }
+
     override fun onTouchEvent(me: MotionEvent): Boolean {
         if (effectiveHeightScale == 1f) {
             handleSoftDeleteTouch(me)
@@ -96,6 +107,10 @@ class FreeShiamyKeyboardView : KeyboardView {
         return when (primaryCode) {
             Keyboard.KEYCODE_CANCEL -> {
                 getOnKeyboardActionListener().onKey(KEYCODE_OPTIONS, null)
+                true
+            }
+            Keyboard.KEYCODE_MODE_CHANGE -> {
+                getOnKeyboardActionListener().onKey(KEYCODE_EMOJI, null)
                 true
             }
             else -> super.onLongPress(key)
@@ -169,23 +184,37 @@ class FreeShiamyKeyboardView : KeyboardView {
         }
 
         val keys = kb.keys
-        labelCache.clear()
-        labelCache.ensureCapacity(keys.size)
+        withLabelsSuppressed(labelCache) {
+            super.onDraw(canvas)
+        }
+
+        drawTopLabels(canvas, keys)
+    }
+
+    private inline fun withLabelsSuppressed(
+        cache: ArrayList<CharSequence?>,
+        action: () -> Unit,
+    ) {
+        val kb = keyboard ?: run {
+            action()
+            return
+        }
+        val keys = kb.keys
+        cache.clear()
+        cache.ensureCapacity(keys.size)
         for (key in keys) {
-            labelCache.add(key.label)
+            cache.add(key.label)
             if (key.label != null) {
                 key.label = null
             }
         }
         try {
-            super.onDraw(canvas)
+            action()
         } finally {
             for (i in keys.indices) {
-                keys[i].label = labelCache[i]
+                keys[i].label = cache[i]
             }
         }
-
-        drawTopLabels(canvas, keys)
     }
 
     private fun drawTopLabels(canvas: Canvas, keys: List<Keyboard.Key>) {
@@ -208,5 +237,6 @@ class FreeShiamyKeyboardView : KeyboardView {
     companion object{
         const val KEYCODE_OPTIONS = -100
         const val KEYCODE_LANGUAGE_SWITCH = -101
+        const val KEYCODE_EMOJI = -102
     }
 }
