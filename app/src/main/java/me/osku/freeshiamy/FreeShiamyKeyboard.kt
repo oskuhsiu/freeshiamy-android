@@ -3,7 +3,6 @@ package me.osku.freeshiamy
 import android.content.Context
 import android.content.res.Resources
 import android.content.res.XmlResourceParser
-import android.graphics.drawable.Drawable
 import android.inputmethodservice.Keyboard
 import android.view.inputmethod.EditorInfo
 
@@ -14,7 +13,6 @@ import android.view.inputmethod.EditorInfo
 class FreeShiamyKeyboard : Keyboard {
 
     private var mEnterKey: Key? = null
-    private var mSpaceKey: Key? = null
 
     /**
      * Stores the current state of the mode change key. Its width will be dynamically updated to
@@ -56,8 +54,6 @@ class FreeShiamyKeyboard : Keyboard {
         val key: Key = LatinKey(res, parent, x, y, parser)
         if (key.codes[0] == 10) {
             mEnterKey = key
-        } else if (key.codes[0] == ' '.toInt()) {
-            mSpaceKey = key
         } else if (key.codes[0] == KEYCODE_MODE_CHANGE) {
             mModeChangeKey = key
             mSavedModeChangeKey = LatinKey(res, parent, x, y, parser)
@@ -123,12 +119,6 @@ class FreeShiamyKeyboard : Keyboard {
                 mEnterKey!!.icon = res.getDrawable(R.drawable.sym_keyboard_return)
                 mEnterKey!!.label = null
             }
-        }
-    }
-
-    fun setSpaceIcon(icon: Drawable?) {
-        if (mSpaceKey != null) {
-            mSpaceKey!!.icon = icon
         }
     }
 
