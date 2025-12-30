@@ -2,6 +2,7 @@ package me.osku.freeshiamy
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
@@ -68,6 +69,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
     private var showNumberRow: Boolean = SettingsKeys.DEFAULT_SHOW_NUMBER_ROW
     private var displayContext: Context? = null
+    private var lastConfig: Configuration? = null
 
     // When Backspace/Delete is held and rawBuffer had content at the start of the press,
     // we must NOT continue deleting the editor text after rawBuffer becomes empty.
@@ -78,6 +80,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onCreate() {
         super.onCreate()
         inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        lastConfig = Configuration(resources.configuration)
         ensureEnginesLoaded()
     }
 
@@ -132,17 +135,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onInitializeInterface() {
         displayContext = getDisplayContextCompat()
-        qwertyOriginalKeyboard = null
-        qwertyOriginalKeyboardNoNumber = null
-        qwertyStandardKeyboard = null
-        qwertyStandardKeyboardNoNumber = null
-        qwertyStandardSpaciousKeyboard = null
-        qwertyStandardSpaciousKeyboardNoNumber = null
-        qwertyKeyboard = null
-        symbolsKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
-        symbolsShiftedKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
-        emojiKeyboard = null
-        curKeyboard = null
+        resetKeyboardCache(precreateSymbols = true)
     }
 
     override fun onCreateInputView(): View {
@@ -176,6 +169,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
         return root
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        maybeRecreateKeyboardsForConfigChange(newConfig)
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
@@ -891,6 +889,86 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val created = getDisplayContextCompat()
         displayContext = created
         return created
+    }
+
+    private fun resetKeyboardCache(precreateSymbols: Boolean) {
+        qwertyOriginalKeyboard = null
+        qwertyOriginalKeyboardNoNumber = null
+        qwertyStandardKeyboard = null
+        qwertyStandardKeyboardNoNumber = null
+        qwertyStandardSpaciousKeyboard = null
+        qwertyStandardSpaciousKeyboardNoNumber = null
+        qwertyKeyboard = null
+        if (precreateSymbols) {
+            symbolsKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
+            symbolsShiftedKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
+        } else {
+            symbolsKeyboard = null
+            symbolsShiftedKeyboard = null
+        }
+        emojiKeyboard = null
+        curKeyboard = null
+    }
+
+    private fun hasKeyboardMetricsChanged(prev: Configuration, next: Configuration): Boolean {
+        return prev.orientation != next.orientation ||
+            prev.screenWidthDp != next.screenWidthDp ||
+            prev.screenHeightDp != next.screenHeightDp ||
+            prev.smallestScreenWidthDp != next.smallestScreenWidthDp ||
+            prev.densityDpi != next.densityDpi
+    }
+
+    private fun maybeRecreateKeyboardsForConfigChange(newConfig: Configuration) {
+        val prevConfig = lastConfig
+        if (prevConfig != null && !hasKeyboardMetricsChanged(prevConfig, newConfig)) {
+            lastConfig = Configuration(newConfig)
+            return
+        }
+        lastConfig = Configuration(newConfig)
+
+        val view = inputView
+        val currentKeyboard = view?.keyboard
+        val wasSymbols = currentKeyboard === symbolsKeyboard
+        val wasSymbolsShifted = currentKeyboard === symbolsShiftedKeyboard
+        val wasEmoji = currentKeyboard === emojiKeyboard
+        val wasShifted = view?.isShifted == true
+
+        displayContext = getDisplayContextCompat()
+        resetKeyboardCache(precreateSymbols = true)
+        reloadSettings()
+        curKeyboard = qwertyKeyboard
+
+        val nextKeyboard =
+            when {
+                wasEmoji -> getEmojiKeyboard()
+                wasSymbolsShifted -> {
+                    val symbols = getSymbolsKeyboard()
+                    val shifted = getSymbolsShiftedKeyboard()
+                    symbols.isShifted = true
+                    shifted.isShifted = true
+                    shifted
+                }
+                wasSymbols -> {
+                    val symbols = getSymbolsKeyboard()
+                    val shifted = getSymbolsShiftedKeyboard()
+                    symbols.isShifted = false
+                    shifted.isShifted = false
+                    symbols
+                }
+                else -> qwertyKeyboard
+            }
+
+        if (view != null && nextKeyboard != null) {
+            setLatinKeyboard(nextKeyboard)
+            if (!wasSymbols && !wasSymbolsShifted && !wasEmoji) {
+                view.isShifted = wasShifted
+            }
+            view.setHeightScale(keyboardHeightPercent / 100f)
+            view.invalidateAllKeys()
+            view.requestLayout()
+        }
+        candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
+        candidateBarView?.requestLayout()
     }
 
     private fun getQwertyOriginalKeyboard(): FreeShiamyKeyboard {
