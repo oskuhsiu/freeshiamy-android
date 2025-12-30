@@ -38,6 +38,12 @@
 
         <SwitchPreferenceCompat
             android:defaultValue="true"
+            android:key="keyboard_left_shift"
+            android:summary="Q/A/Z 三排往左移半格，Del 加寬貼齊右側"
+            android:title="QAZ 左移半格＋Del 加寬" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
             android:key="show_number_row"
             android:summary="顯示最上方的 1~0 數字列"
             android:title="顯示數字列" />

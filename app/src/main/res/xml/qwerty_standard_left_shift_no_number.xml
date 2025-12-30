@@ -25,23 +25,9 @@
     android:keyHeight="@dimen/key_height"
     >
 
-    <!-- Number row: not edge-to-edge -->
-    <Row>
-        <Key android:codes="49" android:keyLabel="1" android:horizontalGap="5%p"/>
-        <Key android:codes="50" android:keyLabel="2"/>
-        <Key android:codes="51" android:keyLabel="3"/>
-        <Key android:codes="52" android:keyLabel="4"/>
-        <Key android:codes="53" android:keyLabel="5"/>
-        <Key android:codes="54" android:keyLabel="6"/>
-        <Key android:codes="55" android:keyLabel="7"/>
-        <Key android:codes="56" android:keyLabel="8"/>
-        <Key android:codes="57" android:keyLabel="9"/>
-        <Key android:codes="48" android:keyLabel="0"/>
-    </Row>
-
     <!-- Q row: not edge-to-edge, and no "?" key -->
     <Row>
-        <Key android:codes="113" android:keyLabel="Q" android:horizontalGap="5%p"/>
+        <Key android:codes="113" android:keyLabel="Q" android:horizontalGap="0%p"/>
         <Key android:codes="119" android:keyLabel="W"/>
         <Key android:codes="101" android:keyLabel="E"/>
         <Key android:codes="114" android:keyLabel="R"/>
@@ -53,9 +39,9 @@
         <Key android:codes="112" android:keyLabel="P"/>
     </Row>
     
-    <!-- A row: A not on left edge, Del on right edge; Del is same size as letters -->
+    <!-- A row: Del on right edge; Del is wider -->
     <Row>
-        <Key android:codes="97" android:keyLabel="A" android:horizontalGap="10%p"/>
+        <Key android:codes="97" android:keyLabel="A" android:horizontalGap="5%p"/>
         <Key android:codes="115" android:keyLabel="S"/>
         <Key android:codes="100" android:keyLabel="D"/>
         <Key android:codes="102" android:keyLabel="F"/>
@@ -65,6 +51,7 @@
         <Key android:codes="107" android:keyLabel="K"/>
         <Key android:codes="108" android:keyLabel="L"/>
         <Key android:codes="-5" android:keyIcon="@drawable/sym_keyboard_delete"
+            android:keyWidth="14%p"
             android:keyEdgeFlags="right"
             android:isRepeatable="true"/>
     </Row>
@@ -74,7 +61,7 @@
         <Key android:codes="-1" android:keyIcon="@drawable/sym_keyboard_shift"
             android:keyWidth="10%p" android:isModifier="true"
             android:isSticky="true"
-            android:horizontalGap="5%p"/>
+            android:horizontalGap="0%p"/>
         <Key android:codes="122" android:keyLabel="Z"/>
         <Key android:codes="120" android:keyLabel="X"/>
         <Key android:codes="99" android:keyLabel="C"/>

@@ -62,12 +62,17 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var qwertyOriginalKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyStandardKeyboard: FreeShiamyKeyboard? = null
     private var qwertyStandardKeyboardNoNumber: FreeShiamyKeyboard? = null
+    private var qwertyStandardLeftShiftKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyStandardLeftShiftKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyStandardSpaciousKeyboard: FreeShiamyKeyboard? = null
     private var qwertyStandardSpaciousKeyboardNoNumber: FreeShiamyKeyboard? = null
+    private var qwertyStandardSpaciousLeftShiftKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyStandardSpaciousLeftShiftKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
     private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
     private var showNumberRow: Boolean = SettingsKeys.DEFAULT_SHOW_NUMBER_ROW
+    private var keyboardLeftShift: Boolean = SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT
     private var displayContext: Context? = null
     private var lastConfig: Configuration? = null
 
@@ -647,19 +652,30 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         keyboardLayout = prefs.getString(SettingsKeys.KEY_KEYBOARD_LAYOUT, SettingsKeys.DEFAULT_KEYBOARD_LAYOUT)
             ?: SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
         showNumberRow = prefs.getBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, SettingsKeys.DEFAULT_SHOW_NUMBER_ROW)
+        keyboardLeftShift = prefs.getBoolean(
+            SettingsKeys.KEY_KEYBOARD_LEFT_SHIFT,
+            SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT,
+        )
+
+        val isStandardSpacious =
+            keyboardLayout == "standard_spacious" || keyboardLayout == "standard_spacious_label_top"
 
         qwertyKeyboard =
-            when (keyboardLayout) {
-                "original" ->
+            when {
+                keyboardLayout == "original" ->
                     if (showNumberRow) getQwertyOriginalKeyboard() else getQwertyOriginalKeyboardNoNumber()
-                "standard_spacious" ->
-                    if (showNumberRow) getQwertyStandardSpaciousKeyboard() else getQwertyStandardSpaciousKeyboardNoNumber()
-                "standard_spacious_label_top" ->
-                    if (showNumberRow) getQwertyStandardSpaciousKeyboard() else getQwertyStandardSpaciousKeyboardNoNumber()
-                "standard_label_top" ->
-                    if (showNumberRow) getQwertyStandardKeyboard() else getQwertyStandardKeyboardNoNumber()
+                isStandardSpacious ->
+                    if (showNumberRow) {
+                        if (keyboardLeftShift) getQwertyStandardSpaciousLeftShiftKeyboard() else getQwertyStandardSpaciousKeyboard()
+                    } else {
+                        if (keyboardLeftShift) getQwertyStandardSpaciousLeftShiftKeyboardNoNumber() else getQwertyStandardSpaciousKeyboardNoNumber()
+                    }
                 else ->
-                    if (showNumberRow) getQwertyStandardKeyboard() else getQwertyStandardKeyboardNoNumber()
+                    if (showNumberRow) {
+                        if (keyboardLeftShift) getQwertyStandardLeftShiftKeyboard() else getQwertyStandardKeyboard()
+                    } else {
+                        if (keyboardLeftShift) getQwertyStandardLeftShiftKeyboardNoNumber() else getQwertyStandardKeyboardNoNumber()
+                    }
             }
 
         if (
@@ -667,8 +683,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             curKeyboard === qwertyOriginalKeyboardNoNumber ||
             curKeyboard === qwertyStandardKeyboard ||
             curKeyboard === qwertyStandardKeyboardNoNumber ||
+            curKeyboard === qwertyStandardLeftShiftKeyboard ||
+            curKeyboard === qwertyStandardLeftShiftKeyboardNoNumber ||
             curKeyboard === qwertyStandardSpaciousKeyboard ||
-            curKeyboard === qwertyStandardSpaciousKeyboardNoNumber
+            curKeyboard === qwertyStandardSpaciousKeyboardNoNumber ||
+            curKeyboard === qwertyStandardSpaciousLeftShiftKeyboard ||
+            curKeyboard === qwertyStandardSpaciousLeftShiftKeyboardNoNumber
         ) {
             curKeyboard = qwertyKeyboard
         }
@@ -896,8 +916,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         qwertyOriginalKeyboardNoNumber = null
         qwertyStandardKeyboard = null
         qwertyStandardKeyboardNoNumber = null
+        qwertyStandardLeftShiftKeyboard = null
+        qwertyStandardLeftShiftKeyboardNoNumber = null
         qwertyStandardSpaciousKeyboard = null
         qwertyStandardSpaciousKeyboardNoNumber = null
+        qwertyStandardSpaciousLeftShiftKeyboard = null
+        qwertyStandardSpaciousLeftShiftKeyboardNoNumber = null
         qwertyKeyboard = null
         if (precreateSymbols) {
             symbolsKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
@@ -1003,6 +1027,22 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         return created
     }
 
+    private fun getQwertyStandardLeftShiftKeyboard(): FreeShiamyKeyboard {
+        val cached = qwertyStandardLeftShiftKeyboard
+        if (cached != null) return cached
+        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_left_shift)
+        qwertyStandardLeftShiftKeyboard = created
+        return created
+    }
+
+    private fun getQwertyStandardLeftShiftKeyboardNoNumber(): FreeShiamyKeyboard {
+        val cached = qwertyStandardLeftShiftKeyboardNoNumber
+        if (cached != null) return cached
+        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_left_shift_no_number)
+        qwertyStandardLeftShiftKeyboardNoNumber = created
+        return created
+    }
+
     private fun getQwertyStandardSpaciousKeyboard(): FreeShiamyKeyboard {
         val cached = qwertyStandardSpaciousKeyboard
         if (cached != null) return cached
@@ -1016,6 +1056,22 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         if (cached != null) return cached
         val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_no_number)
         qwertyStandardSpaciousKeyboardNoNumber = created
+        return created
+    }
+
+    private fun getQwertyStandardSpaciousLeftShiftKeyboard(): FreeShiamyKeyboard {
+        val cached = qwertyStandardSpaciousLeftShiftKeyboard
+        if (cached != null) return cached
+        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_left_shift)
+        qwertyStandardSpaciousLeftShiftKeyboard = created
+        return created
+    }
+
+    private fun getQwertyStandardSpaciousLeftShiftKeyboardNoNumber(): FreeShiamyKeyboard {
+        val cached = qwertyStandardSpaciousLeftShiftKeyboardNoNumber
+        if (cached != null) return cached
+        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_left_shift_no_number)
+        qwertyStandardSpaciousLeftShiftKeyboardNoNumber = created
         return created
     }
 

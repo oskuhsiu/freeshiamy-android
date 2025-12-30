@@ -6,6 +6,7 @@ object SettingsKeys {
 
     const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
     const val KEY_SHOW_NUMBER_ROW = "show_number_row"
+    const val KEY_KEYBOARD_LEFT_SHIFT = "keyboard_left_shift"
 
     const val KEY_CANDIDATE_INLINE_LIMIT = "candidate_inline_limit"
     const val KEY_CANDIDATE_MORE_LIMIT = "candidate_more_limit"
@@ -18,6 +19,7 @@ object SettingsKeys {
     const val DEFAULT_KEYBOARD_HEIGHT_PERCENT = 100
     const val DEFAULT_KEYBOARD_LAYOUT = "standard"
     const val DEFAULT_SHOW_NUMBER_ROW = true
+    const val DEFAULT_KEYBOARD_LEFT_SHIFT = true
     const val DEFAULT_CANDIDATE_INLINE_LIMIT = 10
     const val DEFAULT_CANDIDATE_MORE_LIMIT = 200
     const val DEFAULT_SHOW_SHORTEST_CODE_HINT = true
