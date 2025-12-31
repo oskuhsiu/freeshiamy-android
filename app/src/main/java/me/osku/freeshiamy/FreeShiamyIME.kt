@@ -662,6 +662,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         qwertyKeyboard =
             when {
+                keyboardLayout == "original_no_number" ->
+                    getQwertyOriginalKeyboardNoNumber()
                 keyboardLayout == "original" ->
                     if (showNumberRow) getQwertyOriginalKeyboard() else getQwertyOriginalKeyboardNoNumber()
                 isStandardSpacious ->

@@ -19,7 +19,7 @@
 -->
 
 <Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
-    android:keyWidth="9%p"
+    android:keyWidth="10%p"
     android:horizontalGap="0px"
     android:verticalGap="0px"
     android:keyHeight="@dimen/key_height"
@@ -35,13 +35,11 @@
         <Key android:codes="117" android:keyLabel="U"/>
         <Key android:codes="105" android:keyLabel="I"/>
         <Key android:codes="111" android:keyLabel="O"/>
-        <Key android:codes="112" android:keyLabel="P"/>
-        <Key android:codes="63" android:keyLabel="?" android:keyEdgeFlags="right"/>
+        <Key android:codes="112" android:keyLabel="P" android:keyEdgeFlags="right"/>
     </Row>
     
     <Row>
-        <Key android:codes="97" android:keyLabel="A" android:horizontalGap="5%p"
-            android:keyEdgeFlags="left"/>
+        <Key android:codes="97" android:keyLabel="A" android:keyEdgeFlags="left"/>
         <Key android:codes="115" android:keyLabel="S"/>
         <Key android:codes="100" android:keyLabel="D"/>
         <Key android:codes="102" android:keyLabel="F"/>
@@ -65,15 +63,12 @@
         <Key android:codes="110" android:keyLabel="N"/>
         <Key android:codes="109" android:keyLabel="M"/>
         <Key android:codes="44" android:keyLabel=","/>
-        <Key android:codes="46" android:keyLabel="."/>
-        <Key android:codes="-5" android:keyIcon="@drawable/sym_keyboard_delete"
-            android:keyEdgeFlags="right"
-            android:isRepeatable="true"/>
+        <Key android:codes="46" android:keyLabel="." android:keyEdgeFlags="right"/>
     </Row>
     
     <Row android:rowEdgeFlags="bottom">
         <Key android:codes="-3" android:keyIcon="@drawable/sym_keyboard_done"
-            android:keyWidth="15%p" android:keyEdgeFlags="left"/>
+            android:keyWidth="10%p" android:keyEdgeFlags="left"/>
         <Key android:codes="-2" android:keyLabel="123" android:keyWidth="10%p"/>
         <!--
             android:codes: -101 is not a framework-defined key code but a key code that is
@@ -82,9 +77,11 @@
         <Key android:codes="-101" android:keyIcon="@drawable/sym_keyboard_language_switch"
             android:keyWidth="10%p"/>
         <Key android:codes="32" android:keyIcon="@drawable/sym_keyboard_space"
-            android:keyWidth="50%p" android:isRepeatable="true"/>
+            android:keyWidth="30%p" android:isRepeatable="true"/>
+        <Key android:codes="-5" android:keyIcon="@drawable/sym_keyboard_delete"
+            android:keyWidth="20%p"
+            android:isRepeatable="true"/>
         <Key android:codes="10" android:keyIcon="@drawable/sym_keyboard_return"
-            android:keyWidth="15%p" android:keyEdgeFlags="right"/>
+            android:keyWidth="20%p" android:keyEdgeFlags="right"/>
     </Row>
 </Keyboard>
-
