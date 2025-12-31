@@ -3,18 +3,12 @@
     <string-array name="keyboard_layout_entries">
         <item>Standard（標準）</item>
         <item>Standard（間距加大）</item>
-        <item>Standard（文字靠上）</item>
-        <item>Standard（間距加大＋文字靠上）</item>
         <item>Original（原始）</item>
-        <item>Original（無數字）</item>
     </string-array>
 
     <string-array name="keyboard_layout_entry_values">
         <item>standard</item>
         <item>standard_spacious</item>
-        <item>standard_label_top</item>
-        <item>standard_spacious_label_top</item>
         <item>original</item>
-        <item>original_no_number</item>
     </string-array>
 </resources>

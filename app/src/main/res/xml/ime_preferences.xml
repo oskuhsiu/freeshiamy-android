@@ -43,10 +43,22 @@
             android:title="QAZ 左移半格＋Del 加寬" />
 
         <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="keyboard_label_top"
+            android:summary="鍵帽文字靠上顯示"
+            android:title="文字靠上" />
+
+        <SwitchPreferenceCompat
             android:defaultValue="true"
             android:key="show_number_row"
             android:summary="顯示最上方的 1~0 數字列"
             android:title="顯示數字列" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="always_show_ime"
+            android:summary="即使偵測到硬體鍵盤也顯示此輸入法"
+            android:title="永遠顯示鍵盤" />
 
     </PreferenceCategory>
 

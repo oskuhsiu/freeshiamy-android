@@ -73,6 +73,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
     private var showNumberRow: Boolean = SettingsKeys.DEFAULT_SHOW_NUMBER_ROW
     private var keyboardLeftShift: Boolean = SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT
+    private var keyboardLabelTop: Boolean = SettingsKeys.DEFAULT_KEYBOARD_LABEL_TOP
+    private var alwaysShowIme: Boolean = SettingsKeys.DEFAULT_ALWAYS_SHOW_IME
     private var displayContext: Context? = null
     private var lastConfig: Configuration? = null
 
@@ -87,6 +89,16 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         inputMethodManager = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         lastConfig = Configuration(resources.configuration)
         ensureEnginesLoaded()
+    }
+
+    override fun onEvaluateInputViewShown(): Boolean {
+        refreshAlwaysShowImeSetting()
+        return alwaysShowIme || super.onEvaluateInputViewShown()
+    }
+
+    override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
+        refreshAlwaysShowImeSetting()
+        return if (alwaysShowIme) true else super.onShowInputRequested(flags, configChange)
     }
 
     private fun ensureEnginesLoaded() {
@@ -243,8 +255,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val clearedHint = shortestCodeHintText != null
         shortestCodeHintText = null
 
+        val isEmojiKeyboard = inputView?.keyboard === emojiKeyboard
+        if (isEmojiKeyboard && rawBuffer.isNotEmpty() && !isInSensitiveField) {
+            appendToRawBuffer(text)
+            return
+        }
+
         val shouldDirectCommit =
-            inputView?.keyboard === emojiKeyboard || text.length != 1 || containsSurrogate(text)
+            isEmojiKeyboard || text.length != 1 || containsSurrogate(text)
         if (shouldDirectCommit) {
             if (reverseLookupState == ReverseLookupState.ACTIVE) {
                 cancelReverseLookup()
@@ -371,7 +389,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val ch = primaryCode.toChar()
 
         if (isSymbolsKeyboardActive()) {
-            ic.commitText(ch.toString(), 1)
+            if (rawBuffer.isNotEmpty() && !isInSensitiveField) {
+                appendToRawBuffer(ch.toString())
+            } else {
+                ic.commitText(ch.toString(), 1)
+            }
             return
         }
 
@@ -446,7 +468,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         if (isSymbolsKeyboardActive()) {
-            ic.commitText(primaryCode.toChar().toString(), 1)
+            if (rawBuffer.isNotEmpty() && !isInSensitiveField) {
+                appendToRawBuffer(primaryCode.toChar().toString())
+            } else {
+                ic.commitText(primaryCode.toChar().toString(), 1)
+            }
             return
         }
 
@@ -577,6 +603,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
     }
 
+    private fun appendToRawBuffer(text: CharSequence) {
+        if (reverseLookupState == ReverseLookupState.ACTIVE) {
+            cancelReverseLookup()
+        }
+        rawBuffer.append(text)
+        updateCandidates()
+        updateUi()
+    }
+
     private fun isReverseLookupEntering(rawText: String): Boolean {
         if (reverseLookupState == ReverseLookupState.ACTIVE) return false
         if (rawText.length < 2) return false
@@ -649,21 +684,56 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_KEYBOARD_HEIGHT_PERCENT,
             SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT,
         ).coerceAtLeast(SettingsKeys.MIN_KEYBOARD_HEIGHT_PERCENT)
-        keyboardLayout = prefs.getString(SettingsKeys.KEY_KEYBOARD_LAYOUT, SettingsKeys.DEFAULT_KEYBOARD_LAYOUT)
-            ?: SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
+        var nextLayout =
+            prefs.getString(SettingsKeys.KEY_KEYBOARD_LAYOUT, SettingsKeys.DEFAULT_KEYBOARD_LAYOUT)
+                ?: SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
         showNumberRow = prefs.getBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, SettingsKeys.DEFAULT_SHOW_NUMBER_ROW)
         keyboardLeftShift = prefs.getBoolean(
             SettingsKeys.KEY_KEYBOARD_LEFT_SHIFT,
             SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT,
         )
+        var nextLabelTop =
+            prefs.getBoolean(SettingsKeys.KEY_KEYBOARD_LABEL_TOP, SettingsKeys.DEFAULT_KEYBOARD_LABEL_TOP)
+        alwaysShowIme = prefs.getBoolean(SettingsKeys.KEY_ALWAYS_SHOW_IME, SettingsKeys.DEFAULT_ALWAYS_SHOW_IME)
+
+        var needsMigration = false
+        var migrateShowNumberRow: Boolean? = null
+        when (nextLayout) {
+            "standard_label_top" -> {
+                nextLayout = "standard"
+                nextLabelTop = true
+                needsMigration = true
+            }
+            "standard_spacious_label_top" -> {
+                nextLayout = "standard_spacious"
+                nextLabelTop = true
+                needsMigration = true
+            }
+            "original_no_number" -> {
+                nextLayout = "original"
+                showNumberRow = false
+                migrateShowNumberRow = false
+                needsMigration = true
+            }
+        }
+        if (needsMigration) {
+            val editor = prefs.edit()
+                .putString(SettingsKeys.KEY_KEYBOARD_LAYOUT, nextLayout)
+                .putBoolean(SettingsKeys.KEY_KEYBOARD_LABEL_TOP, nextLabelTop)
+            if (migrateShowNumberRow != null) {
+                editor.putBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, migrateShowNumberRow)
+            }
+            editor.apply()
+        }
+
+        keyboardLayout = nextLayout
+        keyboardLabelTop = nextLabelTop
 
         val isStandardSpacious =
-            keyboardLayout == "standard_spacious" || keyboardLayout == "standard_spacious_label_top"
+            keyboardLayout == "standard_spacious"
 
         qwertyKeyboard =
             when {
-                keyboardLayout == "original_no_number" ->
-                    getQwertyOriginalKeyboardNoNumber()
                 keyboardLayout == "original" ->
                     if (showNumberRow) getQwertyOriginalKeyboard() else getQwertyOriginalKeyboardNoNumber()
                 isStandardSpacious ->
@@ -694,9 +764,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         ) {
             curKeyboard = qwertyKeyboard
         }
-        inputView?.setLabelTopAligned(
-            keyboardLayout == "standard_label_top" || keyboardLayout == "standard_spacious_label_top",
-        )
+        inputView?.setLabelTopAligned(keyboardLabelTop)
         candidateInlineLimit = prefs.getInt(
             SettingsKeys.KEY_CANDIDATE_INLINE_LIMIT,
             SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT,
@@ -720,6 +788,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING,
             SettingsKeys.DEFAULT_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING,
         )
+    }
+
+    private fun refreshAlwaysShowImeSetting() {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(this)
+        alwaysShowIme = prefs.getBoolean(SettingsKeys.KEY_ALWAYS_SHOW_IME, SettingsKeys.DEFAULT_ALWAYS_SHOW_IME)
     }
 
     private fun isSensitiveField(attribute: EditorInfo?): Boolean {
@@ -803,6 +876,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
         inputView?.keyboard = nextKeyboard
+        inputView?.setLabelTopAligned(keyboardLabelTop)
     }
 
     private fun getToken(): IBinder? {
