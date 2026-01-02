@@ -105,7 +105,7 @@ class FreeShiamyKeyboardView : KeyboardView {
     override fun onLongPress(key: Keyboard.Key): Boolean {
         val primaryCode = key.codes.getOrNull(0) ?: return super.onLongPress(key)
         return when (primaryCode) {
-            Keyboard.KEYCODE_CANCEL -> {
+            KEYCODE_LANGUAGE_SWITCH -> {
                 getOnKeyboardActionListener().onKey(KEYCODE_OPTIONS, null)
                 true
             }

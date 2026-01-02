@@ -69,21 +69,27 @@ class FreeShiamyKeyboard : Keyboard {
      * @param visible True if the language switch key should be visible.
      */
     fun setLanguageSwitchKeyVisibility(visible: Boolean) {
+        val modeKey = mModeChangeKey ?: return
+        val languageKey = mLanguageSwitchKey ?: return
+        val savedMode = mSavedModeChangeKey ?: return
+        val savedLanguage = mSavedLanguageSwitchKey ?: return
+
         if (visible) {
             // The language switch key should be visible. Restore the size of the mode change key
             // and language switch key using the saved layout.
-            mModeChangeKey!!.width = mSavedModeChangeKey!!.width
-            mModeChangeKey!!.x = mSavedModeChangeKey!!.x
-            mLanguageSwitchKey!!.width = mSavedLanguageSwitchKey!!.width
-            mLanguageSwitchKey!!.icon = mSavedLanguageSwitchKey!!.icon
-            mLanguageSwitchKey!!.iconPreview = mSavedLanguageSwitchKey!!.iconPreview
+            modeKey.width = savedMode.width
+            modeKey.x = savedMode.x
+            languageKey.width = savedLanguage.width
+            languageKey.icon = savedLanguage.icon
+            languageKey.iconPreview = savedLanguage.iconPreview
         } else {
             // The language switch key should be hidden. Change the width of the mode change key
             // to fill the space of the language key so that the user will not see any strange gap.
-            mModeChangeKey!!.width = mSavedModeChangeKey!!.width + mSavedLanguageSwitchKey!!.width
-            mLanguageSwitchKey!!.width = 0
-            mLanguageSwitchKey!!.icon = null
-            mLanguageSwitchKey!!.iconPreview = null
+            modeKey.width = savedMode.width + savedLanguage.width
+            modeKey.x = if (savedMode.x < savedLanguage.x) savedMode.x else savedLanguage.x
+            languageKey.width = 0
+            languageKey.icon = null
+            languageKey.iconPreview = null
         }
     }
 
