@@ -212,7 +212,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         super.onStartInputView(attribute, restarting)
         suppressExternalDeleteUntilDeleteReleased = false
         inputView?.closing()
-        reloadSettings()
+        val didRecreate = maybeRecreateKeyboardsForConfigChange(resources.configuration)
+        if (!didRecreate) {
+            reloadSettings()
+        }
         isInSensitiveField = disableImeInSensitiveFields && isSensitiveField(attribute)
         setLatinKeyboard(curKeyboard ?: qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
@@ -1018,11 +1021,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             prev.densityDpi != next.densityDpi
     }
 
-    private fun maybeRecreateKeyboardsForConfigChange(newConfig: Configuration) {
+    private fun maybeRecreateKeyboardsForConfigChange(newConfig: Configuration): Boolean {
         val prevConfig = lastConfig
         if (prevConfig != null && !hasKeyboardMetricsChanged(prevConfig, newConfig)) {
             lastConfig = Configuration(newConfig)
-            return
+            return false
         }
         lastConfig = Configuration(newConfig)
 
@@ -1069,6 +1072,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
         candidateBarView?.requestLayout()
+        return true
     }
 
     private fun getQwertyOriginalKeyboard(): FreeShiamyKeyboard {
