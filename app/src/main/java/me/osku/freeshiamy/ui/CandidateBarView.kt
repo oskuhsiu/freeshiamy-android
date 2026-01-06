@@ -79,7 +79,7 @@ class CandidateBarView @JvmOverloads constructor(
     }
 
     fun setState(rawText: String, prefixCandidates: List<CinEntry>, exactCount: Int, hintText: String? = null) {
-        rawTextView.text = rawText
+        rawTextView.text = formatRawText(rawText)
 
         val shouldShowHint = rawText.isEmpty() && !hintText.isNullOrBlank()
         if (shouldShowHint) {
@@ -180,6 +180,11 @@ class CandidateBarView @JvmOverloads constructor(
             1,
             TypedValue.COMPLEX_UNIT_SP,
         )
+    }
+
+    private fun formatRawText(rawText: String): CharSequence {
+        if (rawText.indexOf(' ') == -1) return rawText
+        return rawText.replace(" ", "⎵")
     }
 
     private fun dpToPx(dp: Float): Int {

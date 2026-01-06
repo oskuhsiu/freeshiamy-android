@@ -8,6 +8,8 @@ import android.inputmethodservice.Keyboard
 import android.inputmethodservice.KeyboardView
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.ViewConfiguration
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -28,6 +30,31 @@ class FreeShiamyKeyboardView : KeyboardView {
     private var keyTextColor: Int = Color.WHITE
     private var shadowColor: Int = 0
     private var shadowRadius: Float = 0f
+    private var spaceSwipeEnabled: Boolean = false
+    private var spaceSwipeTracking: Boolean = false
+    private var spaceSwipeConsumed: Boolean = false
+    private var spaceRepeatActive: Boolean = false
+    private var spaceSwipeStartX: Float = 0f
+    private var spaceSwipeStartY: Float = 0f
+    private val spaceSwipeThresholdPx: Float by lazy { 48f * resources.displayMetrics.density }
+    private val spaceSwipeVerticalSlopPx: Float by lazy {
+        maxOf(ViewConfiguration.get(context).scaledTouchSlop.toFloat(), 12f * resources.displayMetrics.density)
+    }
+    private val spaceRepeatStartDelayMs: Long by lazy { ViewConfiguration.getLongPressTimeout().toLong() }
+    private val spaceRepeatIntervalMs: Long = 50L
+    private val spaceRepeatRunnable = object : Runnable {
+        override fun run() {
+            if (!spaceSwipeTracking || spaceSwipeConsumed) return
+            notifyImeSpace()
+            postDelayed(this, spaceRepeatIntervalMs)
+        }
+    }
+    private val spaceRepeatStarter = Runnable {
+        if (!spaceSwipeTracking || spaceSwipeConsumed) return@Runnable
+        spaceRepeatActive = true
+        notifyImeSpace()
+        postDelayed(spaceRepeatRunnable, spaceRepeatIntervalMs)
+    }
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         initLabelPaint(context, attrs)
@@ -49,6 +76,14 @@ class FreeShiamyKeyboardView : KeyboardView {
         if (labelTopAligned == enabled) return
         labelTopAligned = enabled
         invalidate()
+    }
+
+    fun setSpaceSwipeEnabled(enabled: Boolean) {
+        if (spaceSwipeEnabled == enabled) return
+        spaceSwipeEnabled = enabled
+        if (!enabled) {
+            resetSpaceSwipe()
+        }
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -90,12 +125,18 @@ class FreeShiamyKeyboardView : KeyboardView {
 
     override fun onTouchEvent(me: MotionEvent): Boolean {
         if (effectiveHeightScale == 1f) {
+            if (handleSpaceSwipe(me)) return true
             handleSoftDeleteTouch(me)
             return super.onTouchEvent(me)
         }
 
         val scaled = MotionEvent.obtain(me)
         scaled.setLocation(me.x, me.y / effectiveHeightScale)
+        val consumed = handleSpaceSwipe(scaled)
+        if (consumed) {
+            scaled.recycle()
+            return true
+        }
         handleSoftDeleteTouch(scaled)
         val handled = super.onTouchEvent(scaled)
         scaled.recycle()
@@ -143,12 +184,106 @@ class FreeShiamyKeyboardView : KeyboardView {
         }
     }
 
+    private fun handleSpaceSwipe(event: MotionEvent): Boolean {
+        val action = event.actionMasked
+        if (!spaceSwipeEnabled) {
+            if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                resetSpaceSwipe()
+            }
+            return false
+        }
+
+        when (action) {
+            MotionEvent.ACTION_DOWN -> {
+                if (isSpaceKeyTouch(event.x, event.y)) {
+                    spaceSwipeTracking = true
+                    spaceSwipeConsumed = false
+                    spaceRepeatActive = false
+                    spaceSwipeStartX = event.x
+                    spaceSwipeStartY = event.y
+                    scheduleSpaceRepeat()
+                    return true
+                } else {
+                    resetSpaceSwipe()
+                    return false
+                }
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (!spaceSwipeTracking || spaceSwipeConsumed) return spaceSwipeConsumed
+                val dx = event.x - spaceSwipeStartX
+                val dy = abs(event.y - spaceSwipeStartY)
+                if (dx >= spaceSwipeThresholdPx &&
+                    dy <= spaceSwipeVerticalSlopPx &&
+                    isSpaceKeyTouch(event.x, event.y)
+                ) {
+                    spaceSwipeConsumed = true
+                    cancelSpaceRepeat()
+                    notifyImeRawSpace()
+                }
+                return true
+            }
+            MotionEvent.ACTION_UP,
+            MotionEvent.ACTION_CANCEL,
+            -> {
+                if (spaceSwipeTracking) {
+                    if (!spaceSwipeConsumed && !spaceRepeatActive) {
+                        notifyImeSpace()
+                    }
+                    cancelSpaceRepeat()
+                    resetSpaceSwipe()
+                    return true
+                }
+                resetSpaceSwipe()
+                return false
+            }
+        }
+        return spaceSwipeTracking
+    }
+
+    private fun resetSpaceSwipe() {
+        spaceSwipeTracking = false
+        spaceSwipeConsumed = false
+        spaceRepeatActive = false
+        cancelSpaceRepeat()
+    }
+
+    private fun notifyImeRawSpace() {
+        val listener = getOnKeyboardActionListener()
+        listener?.onKey(KEYCODE_RAW_SPACE, null)
+    }
+
+    private fun notifyImeSpace() {
+        val listener = getOnKeyboardActionListener()
+        listener?.onKey(32, null)
+    }
+
+    private fun scheduleSpaceRepeat() {
+        cancelSpaceRepeat()
+        postDelayed(spaceRepeatStarter, spaceRepeatStartDelayMs)
+    }
+
+    private fun cancelSpaceRepeat() {
+        removeCallbacks(spaceRepeatStarter)
+        removeCallbacks(spaceRepeatRunnable)
+    }
+
     private fun isDeleteKeyTouch(x: Float, y: Float): Boolean {
         val kb = keyboard ?: return false
         val xi = x.toInt()
         val yi = y.toInt()
         for (key in kb.keys) {
             if (key.codes.getOrNull(0) != Keyboard.KEYCODE_DELETE) continue
+            if (key.isInside(xi, yi)) return true
+        }
+        return false
+    }
+
+    private fun isSpaceKeyTouch(x: Float, y: Float): Boolean {
+        val kb = keyboard ?: return false
+        val xi = x.toInt()
+        val yi = y.toInt()
+        for (key in kb.keys) {
+            if (key.codes.getOrNull(0) != 32) continue
             if (key.isInside(xi, yi)) return true
         }
         return false
@@ -238,5 +373,6 @@ class FreeShiamyKeyboardView : KeyboardView {
         const val KEYCODE_OPTIONS = -100
         const val KEYCODE_LANGUAGE_SWITCH = -101
         const val KEYCODE_EMOJI = -102
+        const val KEYCODE_RAW_SPACE = -120
     }
 }

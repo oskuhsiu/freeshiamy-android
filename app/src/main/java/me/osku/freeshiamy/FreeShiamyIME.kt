@@ -358,6 +358,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             Keyboard.KEYCODE_MODE_CHANGE -> handleModeChange()
             FreeShiamyKeyboardView.KEYCODE_LANGUAGE_SWITCH -> handleLanguageSwitch()
             FreeShiamyKeyboardView.KEYCODE_EMOJI -> handleEmojiSwitch()
+            FreeShiamyKeyboardView.KEYCODE_RAW_SPACE -> handleRawSpace()
             FreeShiamyKeyboardView.KEYCODE_OPTIONS -> {
                 openSettings()
             }
@@ -532,6 +533,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         ic.commitText("\n", 1)
     }
 
+    private fun handleRawSpace() {
+        if (isInSensitiveField) return
+        if (rawBuffer.isEmpty()) return
+        appendToRawBuffer(" ")
+    }
+
     private fun commitCandidate(entry: CinEntry) {
         val ic = currentInputConnection ?: return
         val typedCode = rawBuffer.toString()
@@ -577,6 +584,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         reverseLookupState = ReverseLookupState.NONE
         candidateBarView?.setExpanded(false)
         shortestCodeHintText = null
+        inputView?.setSpaceSwipeEnabled(false)
     }
 
     private fun updateCandidates() {
@@ -679,6 +687,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             exactCount = exactCount,
             hintText = hintText,
         )
+        inputView?.setSpaceSwipeEnabled(rawText.isNotEmpty() && !isInSensitiveField)
     }
 
     private fun reloadSettings() {
