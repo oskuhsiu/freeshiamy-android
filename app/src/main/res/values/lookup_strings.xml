@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_lookup">查字碼</string>
+    <string name="lookup_close">返回原鍵盤，保留未完成字碼</string>
+    <string name="lookup_phonetic">注音找字</string>
+    <string name="lookup_text">文字查碼</string>
+    <string name="lookup_paste">貼上</string>
+    <string name="lookup_clear">清除</string>
+    <string name="lookup_delete">刪除查詢內容</string>
+    <string name="lookup_first_tone">一聲</string>
+    <string name="lookup_phonetic_hint">輸入注音，可省略聲調</string>
+    <string name="lookup_text_hint">選取或貼上要查的文字</string>
+    <string name="lookup_phonetic_help">用注音找字，點字即可輸入並返回原鍵盤。未選聲調時會列出各聲調的字。</string>
+    <string name="lookup_text_help">按「貼上」查字碼，或先選取輸入框中的文字再開啟查碼。查詢不會改動原文。</string>
+    <string name="lookup_loading">正在載入碼表…</string>
+    <string name="lookup_load_failed">碼表暫時無法使用，請返回後重新開啟查碼。</string>
+    <string name="lookup_no_pronunciation">找不到這個讀音的字，請調整注音或聲調。</string>
+    <string name="lookup_clipboard_empty">剪貼簿沒有可查詢的文字。</string>
+    <string name="lookup_no_code">查無字碼</string>
+    <string name="lookup_more_codes">更多</string>
+    <string name="lookup_more_candidates">顯示更多候選字</string>
+    <string name="lookup_less_codes">收合</string>
+    <string name="lookup_more_description">展開或收合「%1$s」的其他字碼</string>
+    <string name="lookup_commit_description">輸入「%1$s」，字碼：%2$s</string>
+    <string name="lookup_result_description">%1$s，字碼：%2$s</string>
+    <string name="lookup_text_limit">僅顯示前 128 字的查詢結果。</string>
+    <string name="lookup_committed_code">%1$s：%2$s</string>
+    <string name="lookup_committed_no_code">%1$s：查無字碼</string>
+    <item name="lookup_close" type="id" />
+    <item name="lookup_phonetic_tab" type="id" />
+    <item name="lookup_text_tab" type="id" />
+    <item name="lookup_paste" type="id" />
+    <item name="lookup_query" type="id" />
+    <item name="lookup_results" type="id" />
+    <item name="lookup_keyboard" type="id" />
+</resources>

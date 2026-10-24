@@ -98,6 +98,20 @@
         android:paddingHorizontal="8dp">
 
         <ImageButton
+            android:id="@+id/keyboard_lookup_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_lookup"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_search" />
+
+        <ImageButton
             android:id="@+id/keyboard_settings_button"
             android:layout_width="0dp"
             android:layout_height="match_parent"

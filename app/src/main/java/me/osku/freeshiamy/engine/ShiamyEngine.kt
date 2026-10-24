@@ -3,7 +3,7 @@ package me.osku.freeshiamy.engine
 class ShiamyEngine(
     private val entries: List<CinEntry>,
 ) {
-    private val shortestCodeByValue: Map<String, String> = buildShortestCodeByValue(entries)
+    private val codesByValue: Map<String, List<String>> = buildCodesByValue(entries)
 
     fun queryPrefix(prefix: String): List<CinEntry> {
         if (prefix.isEmpty()) return emptyList()
@@ -11,14 +11,16 @@ class ShiamyEngine(
         return entries.filter { it.code.startsWith(prefix) }
     }
 
-    fun shortestCodeForValue(value: String): String? = shortestCodeByValue[value]
+    fun shortestCodeForValue(value: String): String? = codesByValue[value]?.firstOrNull()
 
-    private fun buildShortestCodeByValue(entries: List<CinEntry>): Map<String, String> {
-        val map = HashMap<String, String>(entries.size)
+    fun codesForValue(value: String): List<String> = codesByValue[value].orEmpty()
+
+    private fun buildCodesByValue(entries: List<CinEntry>): Map<String, List<String>> {
+        val map = HashMap<String, MutableSet<String>>(entries.size)
         for (entry in entries) {
-            if (map.containsKey(entry.value)) continue
-            map[entry.value] = entry.code
+            map.getOrPut(entry.value) { HashSet() }.add(entry.code)
         }
-        return map
+        val order = compareBy<String> { it.length }.thenBy { it }
+        return map.mapValues { (_, codes) -> codes.sortedWith(order) }
     }
 }

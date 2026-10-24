@@ -2,6 +2,7 @@ package me.osku.freeshiamy
 
 import android.content.Context
 import android.content.Intent
+import android.content.ClipboardManager
 import android.content.res.Configuration
 import android.inputmethodservice.InputMethodService
 import android.inputmethodservice.Keyboard
@@ -40,6 +41,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var inputView: FreeShiamyKeyboardView? = null
     private var candidateBarView: CandidateBarView? = null
     private var symbolPickerView: SymbolPickerView? = null
+    private var codeLookupView: CodeLookupView? = null
+    private var codeLookupActive = false
+    private val lookupHandledKeys = mutableSetOf<Int>()
     private var pickerMode: CatalogMode? = null
 
     private val rawBuffer = StringBuilder()
@@ -53,6 +57,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var keyboardHeightPercent: Int = SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT
     private var showShortestCodeHint: Boolean = SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT
     private var shortestCodeHintText: String? = null
+    private var explicitLookupHint = false
     private var disableImeInSensitiveFields: Boolean = SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS
     private var sensitiveIncludeNoPersonalizedLearning: Boolean =
         SettingsKeys.DEFAULT_SENSITIVE_FIELD_INCLUDE_NO_PERSONALIZED_LEARNING
@@ -152,6 +157,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onCreateInputView(): View {
         inputView?.closing()
         symbolPickerView?.releasePages()
+        codeLookupActive = false
         val root = layoutInflater.inflate(R.layout.input, null) as ViewGroup
         candidateBarView = root.findViewById(R.id.candidate_bar)
         candidateBarView?.listener = object : CandidateBarView.Listener {
@@ -162,6 +168,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             override fun onHideKeyboardClick() = handleClose()
 
             override fun onEnglishLockClick() = toggleEnglishLock()
+
+            override fun onLookupClick() = openCodeLookup()
 
             override fun onRawClick() {
                 commitRawBuffer()
@@ -191,6 +199,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
                 override fun onDeleteTouch(down: Boolean) = onSoftDeleteTouch(down)
             }
         }
+        codeLookupView = root.findViewById<CodeLookupView>(R.id.code_lookup).apply {
+            listener = object : CodeLookupView.Listener {
+                override fun onClose() = closeCodeLookup()
+                override fun onPaste() = pasteCodeLookup()
+                override fun onCommit(value: String) = commitLookupValue(value)
+            }
+        }
         reloadSettings()
         setLatinKeyboard(qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
@@ -199,6 +214,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        closeCodeLookup()
         val activePicker = if (pickerMode != null) symbolPickerView?.mode else null
         super.onConfigurationChanged(newConfig)
         maybeRecreateKeyboardsForConfigChange(newConfig)
@@ -216,6 +232,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onFinishInputView(finishingInput: Boolean) {
         lastShiftTime = 0
+        closeCodeLookup()
         inputView?.closing()
         symbolPickerView?.releasePages()
         super.onFinishInputView(finishingInput)
@@ -225,6 +242,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         super.onFinishInput()
         clearState()
         suppressExternalDeleteUntilDeleteReleased = false
+        lookupHandledKeys.clear()
         inputView?.closing()
         symbolPickerView?.releasePages()
     }
@@ -244,6 +262,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         symbolPickerView?.releasePages()
         symbolPickerView?.listener = null
         symbolPickerView = null
+        codeLookupView?.listener = null
+        codeLookupView = null
         inputView = null
         candidateBarView = null
         super.onDestroy()
@@ -282,8 +302,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
-        if (rawBuffer.isNotEmpty() && (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)) {
+        if ((rawBuffer.isNotEmpty() || codeLookupActive) &&
+            (newSelStart != oldSelStart || newSelEnd != oldSelEnd) &&
+            (newSelStart != candidatesEnd || newSelEnd != candidatesEnd)) {
             clearState()
+            updateUi()
         }
     }
 
@@ -294,6 +317,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     internal fun onKeyAlternative(text: String) {
+        if (codeLookupActive) {
+            codeLookupView?.inputText(text)
+            return
+        }
         if (pickerMode != null) {
             onPickerText(text)
             return
@@ -334,6 +361,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onText(text: CharSequence?) {
         if (text.isNullOrEmpty()) return
+        if (codeLookupActive) {
+            codeLookupView?.inputText(text)
+            return
+        }
         if (pickerMode != null) {
             onPickerText(text.toString())
             return
@@ -367,6 +398,21 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     // ---- Hardware keys ----
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (codeLookupActive) {
+            lookupHandledKeys.add(keyCode)
+            when (keyCode) {
+                KeyEvent.KEYCODE_BACK, KeyEvent.KEYCODE_ESCAPE -> if (event.repeatCount == 0) closeCodeLookup()
+                KeyEvent.KEYCODE_DEL -> codeLookupView?.backspace()
+                KeyEvent.KEYCODE_V -> if (event.isCtrlPressed) pasteCodeLookup()
+                    else codeLookupView?.input(event.unicodeChar)
+                KeyEvent.KEYCODE_ENTER -> Unit
+                else -> if (!event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
+                    codeLookupView?.input(event.unicodeChar)
+                }
+            }
+            return true
+        }
+        if (keyCode in lookupHandledKeys) return true
         // Intercept only when we have an input connection.
         val ic = currentInputConnection ?: return super.onKeyDown(keyCode, event)
         lastShiftTime = 0
@@ -417,6 +463,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (lookupHandledKeys.remove(keyCode)) return true
         if (keyCode == KeyEvent.KEYCODE_DEL) {
             suppressExternalDeleteUntilDeleteReleased = false
         }
@@ -424,12 +471,20 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     internal fun onSoftDeleteTouch(isDown: Boolean) {
+        if (codeLookupActive) {
+            suppressExternalDeleteUntilDeleteReleased = false
+            return
+        }
         suppressExternalDeleteUntilDeleteReleased = isDown && rawBuffer.isNotEmpty()
     }
 
     // ---- Core logic ----
 
     private fun handlePrimaryCode(primaryCode: Int, preserveLetterCase: Boolean = false) {
+        if (codeLookupActive) {
+            codeLookupView?.input(primaryCode)
+            return
+        }
         val ic = currentInputConnection ?: return
         if (primaryCode != Keyboard.KEYCODE_SHIFT) lastShiftTime = 0
         val clearedHint = shortestCodeHintText != null
@@ -684,6 +739,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun clearState() {
+        closeCodeLookup()
         rawBuffer.setLength(0)
         rawPickerSegments.clear()
         prefixCandidates = emptyList()
@@ -691,6 +747,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         reverseLookupState = ReverseLookupState.NONE
         candidateBarView?.setExpanded(false)
         shortestCodeHintText = null
+        explicitLookupHint = false
         inputView?.setSpaceSwipeEnabled(false)
         symbolPickerView?.setSpaceSwipeEnabled(false)
     }
@@ -784,8 +841,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun updateUi() {
+        codeLookupView?.setEngines(sharedEngine, sharedSpellEngine, engineLoading || spellEngineLoading)
+        if (codeLookupActive) {
+            candidateBarView?.visibility = View.GONE
+            return
+        }
         val rawText = rawBuffer.toString()
-        val hintText = if (showShortestCodeHint) shortestCodeHintText else null
+        val hintText = if (showShortestCodeHint || explicitLookupHint) shortestCodeHintText else null
         // Keep the candidate bar space reserved to avoid keyboard jumping (layout thrash).
         candidateBarView?.visibility = View.VISIBLE
         candidateBarView?.setEnglishLocked(englishLocked)
@@ -817,6 +879,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         symbolPickerView?.setHapticFeedbackEnabled(
             prefs.getBoolean(SettingsKeys.KEY_HAPTIC_FEEDBACK, SettingsKeys.DEFAULT_HAPTIC_FEEDBACK),
         )
+        codeLookupView?.setHaptics(
+            prefs.getBoolean(SettingsKeys.KEY_HAPTIC_FEEDBACK, SettingsKeys.DEFAULT_HAPTIC_FEEDBACK),
+        )
+        codeLookupView?.setHeightScale(keyboardHeightPercent / 100f)
         symbolPickerView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateInlineLimit = prefs.getInt(
             SettingsKeys.KEY_CANDIDATE_INLINE_LIMIT,
@@ -830,7 +896,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_SHOW_SHORTEST_CODE_HINT,
             SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT,
         )
-        if (!showShortestCodeHint) {
+        if (!showShortestCodeHint && !explicitLookupHint) {
             shortestCodeHintText = null
         }
         disableImeInSensitiveFields = prefs.getBoolean(
@@ -928,7 +994,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         pickerMode = null
         symbolPickerView?.releasePages()
         symbolPickerView?.visibility = View.GONE
-        inputView?.visibility = View.VISIBLE
+        inputView?.visibility = if (codeLookupActive) View.GONE else View.VISIBLE
         val shouldSupportLanguageSwitchKey =
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
@@ -970,7 +1036,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         inputView?.closing()
         inputView?.visibility = View.GONE
         pickerMode = mode
-        picker.visibility = View.VISIBLE
+        picker.visibility = if (codeLookupActive) View.GONE else View.VISIBLE
         picker.setImeOptions(currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_ACTION_NONE)
         picker.show(mode)
         updateUi()
@@ -978,6 +1044,58 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun handleLanguageSwitch() {
         inputMethodManager?.switchToNextInputMethod(getToken(), false /* onlyCurrentIme */)
+    }
+
+    private fun openCodeLookup() {
+        if (isInSensitiveField) return
+        val ic = currentInputConnection ?: return
+        val lookup = codeLookupView ?: return
+        ensureEnginesLoaded()
+        val selected = ic.getSelectedText(0)?.toString()
+        inputView?.closing()
+        symbolPickerView?.releasePages()
+        suppressExternalDeleteUntilDeleteReleased = false
+        codeLookupActive = true
+        inputView?.visibility = View.GONE
+        symbolPickerView?.visibility = View.GONE
+        lookup.visibility = View.VISIBLE
+        lookup.open(selected)
+        updateUi()
+    }
+
+    private fun closeCodeLookup() {
+        if (!codeLookupActive) return
+        codeLookupActive = false
+        codeLookupView?.reset()
+        codeLookupView?.visibility = View.GONE
+        candidateBarView?.showCandidates()
+        val originalPicker = pickerMode
+        if (originalPicker != null) showPicker(originalPicker)
+        else inputView?.visibility = View.VISIBLE
+        updateUi()
+    }
+
+    private fun pasteCodeLookup() {
+        if (!codeLookupActive) return
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        // Read only an explicit text clip. Do not coerce URIs or read the clipboard on open.
+        val clip = clipboard.primaryClip
+        val text = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).text else null
+        codeLookupView?.showClipboard(text?.toString())
+    }
+
+    private fun commitLookupValue(value: String) {
+        if (!codeLookupActive) return
+        val ic = currentInputConnection ?: return
+        if (!ic.commitText(value, 1)) return
+        clearState()
+        // This is the result of an explicit lookup, so keep its code visible even if normal
+        // shortest-code hints are disabled in settings.
+        shortestCodeHintText = sharedEngine?.shortestCodeForValue(value)?.let {
+            getString(R.string.lookup_committed_code, value, it.uppercase(Locale.ROOT))
+        } ?: getString(R.string.lookup_committed_no_code, value)
+        explicitLookupHint = true
+        updateUi()
     }
 
     private fun handleShift() {

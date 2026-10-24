@@ -31,6 +31,7 @@ class CandidateBarView @JvmOverloads constructor(
         fun onLanguageSwitchClick()
         fun onHideKeyboardClick()
         fun onEnglishLockClick()
+        fun onLookupClick()
     }
 
     private val candidateBarRow: LinearLayout
@@ -96,13 +97,13 @@ class CandidateBarView @JvmOverloads constructor(
             updateSlotVisibility()
         }
         returnButton.setOnClickListener {
-            toolsRequested = false
-            updateSlotVisibility()
+            showCandidates()
         }
         settingsButton.setOnClickListener { listener?.onSettingsClick() }
         languageSwitchButton.setOnClickListener { listener?.onLanguageSwitchClick() }
         hideKeyboardButton.setOnClickListener { listener?.onHideKeyboardClick() }
         englishLockButton.setOnClickListener { listener?.onEnglishLockClick() }
+        findViewById<ImageButton>(R.id.keyboard_lookup_button).setOnClickListener { listener?.onLookupClick() }
 
         // Keep the header height stable as candidates and hints change.
         setHeightScale(1f)
@@ -119,6 +120,11 @@ class CandidateBarView @JvmOverloads constructor(
         englishLockButton.contentDescription = context.getString(
             if (locked) R.string.keyboard_english_lock_on else R.string.keyboard_english_lock_off
         )
+    }
+
+    fun showCandidates() {
+        toolsRequested = false
+        updateSlotVisibility()
     }
 
     fun setState(rawText: String, prefixCandidates: List<CinEntry>, exactCount: Int, hintText: String? = null) {
