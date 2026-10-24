@@ -32,5 +32,22 @@
     <me.osku.freeshiamy.FreeShiamyKeyboardView
         android:id="@+id/keyboard"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:padding="0dp"
+        android:background="@color/keyboard_background"
+        android:keyBackground="@drawable/keyboard_key_background"
+        android:keyPreviewLayout="@layout/key_preview"
+        android:keyPreviewHeight="64dp"
+        android:keyPreviewOffset="-6dp"
+        android:keyTextColor="@color/candidate_normal"
+        android:shadowColor="@android:color/transparent"
+        android:shadowRadius="0"
+        android:keyTextSize="@dimen/keyboard_letter_text_size"
+        android:labelTextSize="14sp" />
+
+    <me.osku.freeshiamy.SymbolPickerView
+        android:id="@+id/symbol_picker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 </LinearLayout>

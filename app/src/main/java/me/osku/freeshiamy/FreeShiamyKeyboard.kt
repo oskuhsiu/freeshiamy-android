@@ -5,12 +5,70 @@ import android.content.res.Resources
 import android.content.res.XmlResourceParser
 import android.inputmethodservice.Keyboard
 import android.view.inputmethod.EditorInfo
+import kotlin.math.roundToInt
 
 
 /**
  * Created by Osku on 2021/4/9.
  */
 class FreeShiamyKeyboard : Keyboard {
+
+    private data class KeyRow(val keys: List<Key>, val gapAfter: Int)
+
+    private var baseRows: List<KeyRow>? = null
+    private var layoutHeight: Int? = null
+    private val keyIndices by lazy { IntArray(keys.size) { it } }
+
+    /** Rebuild from the original rows so adjusting height never compounds a previous scale. */
+    fun updateKeyHeights(scale: Float, density: Float, maxHeight: Int): Boolean {
+        val rows = baseRows ?: keys.groupBy { it.y }.toSortedMap().values.toList().let { groups ->
+            groups.mapIndexed { index, row ->
+                val height = row.maxOf { it.height }
+                val nextTop = groups.getOrNull(index + 1)?.first()?.y
+                KeyRow(row, nextTop?.minus(row.first().y + height)?.coerceAtLeast(0) ?: 0)
+            }
+        }.also { baseRows = it }
+        if (rows.isEmpty()) return false
+
+        val heights = rows.map { row ->
+            val isNumberRow = row.keys.all {
+                it.codes.firstOrNull()?.let { code -> code in '0'.code..'9'.code } == true
+            }
+            val isBottomRow = row.keys.any { it.codes.firstOrNull() == ' '.code }
+            val heightDp = when {
+                isBottomRow -> 56f
+                isNumberRow -> 48f
+                else -> 52f
+            }
+            heightDp * density * scale
+        }
+        val desiredHeight = heights.sum() + rows.sumOf { it.gapAfter } * scale
+        val fit = minOf(1f, maxHeight.coerceAtLeast(rows.size) / desiredHeight)
+        var top = 0f
+        var changed = false
+        for ((index, row) in rows.withIndex()) {
+            val y = top.roundToInt()
+            top += heights[index] * fit
+            val height = (top.roundToInt() - y).coerceAtLeast(1)
+            for (key in row.keys) {
+                changed = changed || key.y != y || key.height != height
+                key.y = y
+                key.height = height
+            }
+            top += row.gapAfter * scale * fit
+        }
+        val height = top.roundToInt()
+        changed = changed || layoutHeight != height
+        layoutHeight = height
+        return changed
+    }
+
+    override fun getHeight(): Int = layoutHeight ?: super.getHeight()
+
+    // Framework's private neighbor grid cannot be invalidated after changing key heights.
+    // The small keyboard (about 50 keys) can use its existing precise hit/proximity checks directly.
+    override fun getNearestKeys(x: Int, y: Int): IntArray =
+        if (x in 0 until minWidth && y in 0 until height) keyIndices else intArrayOf()
 
     private var mEnterKey: Key? = null
 
@@ -113,7 +171,7 @@ class FreeShiamyKeyboard : Keyboard {
                 mEnterKey!!.label = res.getText(R.string.label_next_key)
             }
             EditorInfo.IME_ACTION_SEARCH -> {
-                mEnterKey!!.icon = res.getDrawable(R.drawable.sym_keyboard_search)
+                mEnterKey!!.icon = res.getDrawable(R.drawable.ic_keyboard_search)
                 mEnterKey!!.label = null
             }
             EditorInfo.IME_ACTION_SEND -> {
@@ -122,7 +180,7 @@ class FreeShiamyKeyboard : Keyboard {
                 mEnterKey!!.label = res.getText(R.string.label_send_key)
             }
             else -> {
-                mEnterKey!!.icon = res.getDrawable(R.drawable.sym_keyboard_return)
+                mEnterKey!!.icon = res.getDrawable(R.drawable.ic_keyboard_enter)
                 mEnterKey!!.label = null
             }
         }
@@ -133,11 +191,8 @@ class FreeShiamyKeyboard : Keyboard {
         parser: XmlResourceParser?
     ) :
         Key(res, parent, x, y, parser) {
-        /**
-         * Overriding this method so that we can reduce the target area for the key that
-         * closes the keyboard.
-         */
         override fun isInside(x: Int, y: Int): Boolean {
+            if (width <= 0) return false
             return super.isInside(x, if (codes[0] == KEYCODE_CANCEL) y - 10 else y)
         }
     }

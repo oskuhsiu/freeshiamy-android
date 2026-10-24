@@ -1,6 +1,7 @@
 package me.osku.freeshiamy.ui
 
 import android.content.Context
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -8,6 +9,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.GridLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -25,6 +27,10 @@ class CandidateBarView @JvmOverloads constructor(
     interface Listener {
         fun onRawClick()
         fun onCandidateClick(entry: CinEntry)
+        fun onSettingsClick()
+        fun onLanguageSwitchClick()
+        fun onHideKeyboardClick()
+        fun onEnglishLockClick()
     }
 
     private val candidateBarRow: LinearLayout
@@ -33,10 +39,19 @@ class CandidateBarView @JvmOverloads constructor(
     private val candidateScroll: HorizontalScrollView
     private val candidateContainer: LinearLayout
     private val moreButton: Button
+    private val toolsButton: ImageButton
+    private val toolbarRow: LinearLayout
+    private val settingsButton: ImageButton
+    private val languageSwitchButton: ImageButton
+    private val hideKeyboardButton: ImageButton
+    private val englishLockButton: ImageButton
+    private val returnButton: ImageButton
     private val moreScroll: ScrollView
     private val candidateGrid: GridLayout
 
     private var expanded = false
+    private var toolsRequested = false
+    private var hasCandidateContent = false
     private var currentCandidates: List<CinEntry> = emptyList()
     private var currentExactCount: Int = 0
     private var inlineLimit: Int = 10
@@ -47,9 +62,9 @@ class CandidateBarView @JvmOverloads constructor(
     private var autoSizeMinSp: Int = 12
     private var autoSizeMaxSp: Int = 24
 
-    // Make candidate buttons more compact (60% of current visual width).
-    private val candidateButtonWidthScale: Float = 0.6f
-    private val candidateButtonHorizontalMarginPx: Int by lazy { dpToPx(1f * candidateButtonWidthScale) }
+    private val candidateButtonMinWidthPx: Int by lazy { dpToPx(48f) }
+    private val candidateButtonHorizontalPaddingPx: Int by lazy { dpToPx(8f) }
+    private val candidateButtonHorizontalMarginPx: Int by lazy { dpToPx(1f) }
 
     var listener: Listener? = null
 
@@ -63,14 +78,35 @@ class CandidateBarView @JvmOverloads constructor(
         candidateScroll = findViewById(R.id.candidate_scroll)
         candidateContainer = findViewById(R.id.candidate_container)
         moreButton = findViewById(R.id.more_button)
+        toolsButton = findViewById(R.id.tools_button)
+        toolbarRow = findViewById(R.id.keyboard_toolbar_row)
+        settingsButton = findViewById(R.id.keyboard_settings_button)
+        languageSwitchButton = findViewById(R.id.keyboard_switch_button)
+        hideKeyboardButton = findViewById(R.id.keyboard_hide_button)
+        englishLockButton = findViewById(R.id.keyboard_english_lock_button)
+        englishLockButton.imageTintList = context.getColorStateList(R.color.keyboard_toggle_tint)
+        returnButton = findViewById(R.id.keyboard_return_button)
         moreScroll = findViewById(R.id.more_scroll)
         candidateGrid = findViewById(R.id.candidate_grid)
 
         rawTextView.setOnClickListener { listener?.onRawClick() }
         moreButton.setOnClickListener { setExpanded(!expanded) }
+        toolsButton.setOnClickListener {
+            toolsRequested = true
+            updateSlotVisibility()
+        }
+        returnButton.setOnClickListener {
+            toolsRequested = false
+            updateSlotVisibility()
+        }
+        settingsButton.setOnClickListener { listener?.onSettingsClick() }
+        languageSwitchButton.setOnClickListener { listener?.onLanguageSwitchClick() }
+        hideKeyboardButton.setOnClickListener { listener?.onHideKeyboardClick() }
+        englishLockButton.setOnClickListener { listener?.onEnglishLockClick() }
 
-        // Default to the configured candidate bar height (typically smaller than a key row).
+        // Keep the header height stable as candidates and hints change.
         setHeightScale(1f)
+        updateSlotVisibility()
     }
 
     fun setLimits(inlineLimit: Int, maxMoreItems: Int) {
@@ -78,10 +114,22 @@ class CandidateBarView @JvmOverloads constructor(
         this.maxMoreItems = maxMoreItems.coerceAtLeast(this.inlineLimit)
     }
 
+    fun setEnglishLocked(locked: Boolean) {
+        englishLockButton.isSelected = locked
+        englishLockButton.contentDescription = context.getString(
+            if (locked) R.string.keyboard_english_lock_on else R.string.keyboard_english_lock_off
+        )
+    }
+
     fun setState(rawText: String, prefixCandidates: List<CinEntry>, exactCount: Int, hintText: String? = null) {
         rawTextView.text = formatRawText(rawText)
+        rawTextView.contentDescription = context.getString(
+            R.string.candidate_commit_raw_description, rawTextView.text
+        )
 
         val shouldShowHint = rawText.isEmpty() && !hintText.isNullOrBlank()
+        hasCandidateContent = rawText.isNotEmpty() || shouldShowHint
+        if (!hasCandidateContent) toolsRequested = false
         if (shouldShowHint) {
             hintTextView.text = hintText
             hintTextView.visibility = View.VISIBLE
@@ -93,6 +141,7 @@ class CandidateBarView @JvmOverloads constructor(
             currentExactCount = 0
             candidateContainer.removeAllViews()
             candidateGrid.removeAllViews()
+            updateSlotVisibility()
             return
         }
 
@@ -109,21 +158,33 @@ class CandidateBarView @JvmOverloads constructor(
 
         renderInlineCandidates()
         renderMoreButton()
+        updateSlotVisibility()
     }
 
     fun setExpanded(expand: Boolean) {
         expanded = expand
-        moreScroll.visibility = if (expanded) View.VISIBLE else View.GONE
         moreButton.text = if (expanded) "▲" else "▼"
+        moreButton.contentDescription = context.getString(
+            if (expanded) R.string.candidate_collapse else R.string.candidate_expand
+        )
         if (expanded) {
             renderExpandedCandidates()
         }
+        updateSlotVisibility()
+    }
+
+    private fun updateSlotVisibility() {
+        val showTools = toolsRequested || !hasCandidateContent
+        toolbarRow.visibility = if (showTools) View.VISIBLE else View.GONE
+        candidateBarRow.visibility = if (showTools) View.GONE else View.VISIBLE
+        returnButton.visibility = if (hasCandidateContent) View.VISIBLE else View.GONE
+        moreScroll.visibility = if (!showTools && expanded) View.VISIBLE else View.GONE
     }
 
     private fun renderMoreButton() {
-        moreButton.visibility =
-            if (currentCandidates.size > inlineLimit) View.VISIBLE else View.GONE
-        if (!moreButton.isShown) setExpanded(false)
+        val hasMoreCandidates = currentCandidates.size > inlineLimit
+        moreButton.visibility = if (hasMoreCandidates) View.VISIBLE else View.GONE
+        if (!hasMoreCandidates) setExpanded(false)
     }
 
     private fun renderInlineCandidates() {
@@ -143,23 +204,40 @@ class CandidateBarView @JvmOverloads constructor(
             val entry = currentCandidates[i]
             val button = createCandidateButton(entry, i)
             val params = GridLayout.LayoutParams()
+            params.columnSpec = GridLayout.spec(i % candidateGrid.columnCount, 1f)
+            params.rowSpec = GridLayout.spec(i / candidateGrid.columnCount)
             params.setMargins(candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx, candidateButtonHorizontalMarginPx)
+            params.width = 0
             params.height = headerRowHeightPx
             button.layoutParams = params
             candidateGrid.addView(button)
         }
     }
 
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        val availableWidth = (w - candidateGrid.paddingLeft - candidateGrid.paddingRight).coerceAtLeast(0)
+        val minCellWidth = candidateButtonMinWidthPx + candidateButtonHorizontalMarginPx * 2
+        val columnCount = (availableWidth / minCellWidth).coerceIn(1, 5)
+        if (candidateGrid.columnCount != columnCount) {
+            candidateGrid.removeAllViews()
+            candidateGrid.columnCount = columnCount
+            if (expanded) renderExpandedCandidates()
+        }
+    }
+
     fun setHeightScale(scale: Float) {
         val safeScale = scale.coerceAtLeast(0.5f)
-        val newRowHeightPx = (baseRowHeightPx * safeScale).roundToInt().coerceAtLeast(1)
+        val newRowHeightPx = (baseRowHeightPx * safeScale).roundToInt().coerceAtLeast(dpToPx(48f))
         if (newRowHeightPx == headerRowHeightPx) return
 
         headerRowHeightPx = newRowHeightPx
-        val rowLayoutParams = candidateBarRow.layoutParams
-            ?: LayoutParams(LayoutParams.MATCH_PARENT, headerRowHeightPx)
-        rowLayoutParams.height = headerRowHeightPx
-        candidateBarRow.layoutParams = rowLayoutParams
+        for (row in listOf(candidateBarRow, toolbarRow)) {
+            val rowLayoutParams = row.layoutParams
+                ?: LayoutParams(LayoutParams.MATCH_PARENT, headerRowHeightPx)
+            rowLayoutParams.height = headerRowHeightPx
+            row.layoutParams = rowLayoutParams
+        }
 
         autoSizeMinSp = (12f * safeScale).roundToInt().coerceAtLeast(8)
         autoSizeMaxSp = (18f * safeScale).roundToInt().coerceAtLeast(autoSizeMinSp)
@@ -194,23 +272,16 @@ class CandidateBarView @JvmOverloads constructor(
 
     private fun createCandidateButton(entry: CinEntry, index: Int): Button {
         val button = Button(context)
+        button.setBackgroundResource(R.drawable.keyboard_key_background)
+        button.backgroundTintList = null
         button.text = entry.value
         button.isAllCaps = false
-        button.minWidth = 0
+        button.minWidth = candidateButtonMinWidthPx
+        button.minimumWidth = candidateButtonMinWidthPx
         button.minHeight = 0
-
-        // Shrink the "pill" width by scaling the style-provided padding + minWidth.
-        // This is more robust than hard-coding dp values because Material/AppCompat styles vary by device/theme.
-        val baseMinWidth = maxOf(button.minWidth, button.minimumWidth)
-        val scaledMinWidth = (baseMinWidth * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
-        button.minWidth = scaledMinWidth
-        button.minimumWidth = scaledMinWidth
-        button.setMinWidth(scaledMinWidth)
-        button.setMinimumWidth(scaledMinWidth)
-
-        val scaledPaddingLeft = (button.paddingLeft * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
-        val scaledPaddingRight = (button.paddingRight * candidateButtonWidthScale).roundToInt().coerceAtLeast(0)
-        button.setPadding(scaledPaddingLeft, 0, scaledPaddingRight, 0)
+        button.isSingleLine = true
+        button.ellipsize = TextUtils.TruncateAt.END
+        button.setPadding(candidateButtonHorizontalPaddingPx, 0, candidateButtonHorizontalPaddingPx, 0)
         applyAutoSize(button)
 
         val normal = resources.getColor(R.color.candidate_normal)

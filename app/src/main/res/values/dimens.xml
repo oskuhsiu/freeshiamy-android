@@ -19,7 +19,8 @@
 -->
 
 <resources>
+    <dimen name="keyboard_letter_text_size">22sp</dimen>
+    <dimen name="keyboard_symbol_hint_text_size">10sp</dimen>
     <dimen name="key_height">50dip</dimen>
-    <dimen name="key_label_top_padding">6dip</dimen>
-    <dimen name="candidate_bar_height">37.5dip</dimen>
+    <dimen name="candidate_bar_height">48dp</dimen>
 </resources>

@@ -108,6 +108,13 @@ proguard/
 # Android Studio captures folder
 captures/
 
+# Local device-test recordings, screenshots, and temporary harnesses
+/test-runs/
+
+# Local Python bytecode from catalog tooling
+__pycache__/
+*.py[cod]
+
 # Intellij
 *.iml
 .idea
@@ -137,3 +144,4 @@ freeline_project_description.json
 plan/
 *.md
 !README.md
+!/doc/google-zhuyin-symbols.md

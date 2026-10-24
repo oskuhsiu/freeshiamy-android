@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
@@ -27,6 +28,7 @@ import me.osku.freeshiamy.engine.SpellEngine
 import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
 import me.osku.freeshiamy.ui.CandidateBarView
+import me.osku.freeshiamy.catalog.CatalogMode
 import java.util.Locale
 
 /**
@@ -37,8 +39,12 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var inputMethodManager: InputMethodManager? = null
     private var inputView: FreeShiamyKeyboardView? = null
     private var candidateBarView: CandidateBarView? = null
+    private var symbolPickerView: SymbolPickerView? = null
+    private var pickerMode: CatalogMode? = null
 
     private val rawBuffer = StringBuilder()
+    // Explicit picker selections stay whole when deleting pending raw text.
+    private val rawPickerSegments = mutableListOf<Pair<Int, Int>>()
     private var prefixCandidates: List<CinEntry> = emptyList()
     private var exactCount: Int = 0
     private var reverseLookupState: ReverseLookupState = ReverseLookupState.NONE
@@ -53,27 +59,15 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var isInSensitiveField: Boolean = false
 
     private var lastShiftTime: Long = 0
+    private var letterShifted = false
     private var capsLock = false
+    private var englishLocked = false
+    private var qwertyFamiliarKeyboard: FreeShiamyKeyboard? = null
+    private var qwertyFamiliarKeyboardNoNumber: FreeShiamyKeyboard? = null
 
-    private var symbolsKeyboard: FreeShiamyKeyboard? = null
-    private var symbolsShiftedKeyboard: FreeShiamyKeyboard? = null
-    private var emojiKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyOriginalKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyOriginalKeyboardNoNumber: FreeShiamyKeyboard? = null
-    private var qwertyStandardKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyStandardKeyboardNoNumber: FreeShiamyKeyboard? = null
-    private var qwertyStandardLeftShiftKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyStandardLeftShiftKeyboardNoNumber: FreeShiamyKeyboard? = null
-    private var qwertyStandardSpaciousKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyStandardSpaciousKeyboardNoNumber: FreeShiamyKeyboard? = null
-    private var qwertyStandardSpaciousLeftShiftKeyboard: FreeShiamyKeyboard? = null
-    private var qwertyStandardSpaciousLeftShiftKeyboardNoNumber: FreeShiamyKeyboard? = null
     private var qwertyKeyboard: FreeShiamyKeyboard? = null
     private var curKeyboard: FreeShiamyKeyboard? = null
-    private var keyboardLayout: String = SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
     private var showNumberRow: Boolean = SettingsKeys.DEFAULT_SHOW_NUMBER_ROW
-    private var keyboardLeftShift: Boolean = SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT
-    private var keyboardLabelTop: Boolean = SettingsKeys.DEFAULT_KEYBOARD_LABEL_TOP
     private var alwaysShowIme: Boolean = SettingsKeys.DEFAULT_ALWAYS_SHOW_IME
     private var displayContext: Context? = null
     private var lastConfig: Configuration? = null
@@ -152,13 +146,23 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     override fun onInitializeInterface() {
         displayContext = getDisplayContextCompat()
-        resetKeyboardCache(precreateSymbols = true)
+        resetKeyboardCache()
     }
 
     override fun onCreateInputView(): View {
+        inputView?.closing()
+        symbolPickerView?.releasePages()
         val root = layoutInflater.inflate(R.layout.input, null) as ViewGroup
         candidateBarView = root.findViewById(R.id.candidate_bar)
         candidateBarView?.listener = object : CandidateBarView.Listener {
+            override fun onSettingsClick() = openSettings()
+
+            override fun onLanguageSwitchClick() = handleLanguageSwitch()
+
+            override fun onHideKeyboardClick() = handleClose()
+
+            override fun onEnglishLockClick() = toggleEnglishLock()
+
             override fun onRawClick() {
                 commitRawBuffer()
             }
@@ -180,7 +184,13 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         inputView = root.findViewById(R.id.keyboard)
         inputView?.setOnKeyboardActionListener(this)
-        inputView?.setPreviewEnabled(false)
+        symbolPickerView = root.findViewById<SymbolPickerView>(R.id.symbol_picker).apply {
+            listener = object : SymbolPickerView.Listener {
+                override fun onText(text: String) = onPickerText(text)
+                override fun onKey(code: Int) = handlePrimaryCode(code)
+                override fun onDeleteTouch(down: Boolean) = onSoftDeleteTouch(down)
+            }
+        }
         reloadSettings()
         setLatinKeyboard(qwertyKeyboard)
         inputView?.setHeightScale(keyboardHeightPercent / 100f)
@@ -189,16 +199,26 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
+        val activePicker = if (pickerMode != null) symbolPickerView?.mode else null
         super.onConfigurationChanged(newConfig)
         maybeRecreateKeyboardsForConfigChange(newConfig)
+        if (activePicker != null && isInputViewShown) showPicker(activePicker)
     }
 
     override fun onStartInput(attribute: EditorInfo, restarting: Boolean) {
         super.onStartInput(attribute, restarting)
+        lastShiftTime = 0
         clearState()
         isInSensitiveField = disableImeInSensitiveFields && isSensitiveField(attribute)
         curKeyboard = qwertyKeyboard
         curKeyboard?.setImeOptions(resources, attribute.imeOptions)
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        lastShiftTime = 0
+        inputView?.closing()
+        symbolPickerView?.releasePages()
+        super.onFinishInputView(finishingInput)
     }
 
     override fun onFinishInput() {
@@ -206,6 +226,27 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         clearState()
         suppressExternalDeleteUntilDeleteReleased = false
         inputView?.closing()
+        symbolPickerView?.releasePages()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (!isInputViewShown) symbolPickerView?.releasePages()
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        if (!isInputViewShown) symbolPickerView?.releasePages()
+    }
+
+    override fun onDestroy() {
+        inputView?.closing()
+        symbolPickerView?.releasePages()
+        symbolPickerView?.listener = null
+        symbolPickerView = null
+        inputView = null
+        candidateBarView = null
+        super.onDestroy()
     }
 
     override fun onStartInputView(attribute: EditorInfo?, restarting: Boolean) {
@@ -252,20 +293,57 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         handlePrimaryCode(primaryCode)
     }
 
+    internal fun onKeyAlternative(text: String) {
+        if (pickerMode != null) {
+            onPickerText(text)
+            return
+        }
+        val ic = currentInputConnection ?: return
+        lastShiftTime = 0
+        shortestCodeHintText = null
+        // Explicit selections preserve case and insert digits literally, not as candidate indices.
+        if (text.length == 1) {
+            handleCharacter(text.single().code, ic, preserveLetterCase = true)
+        } else {
+            if (reverseLookupState == ReverseLookupState.ACTIVE) cancelReverseLookup()
+            if (!englishLocked && !isInSensitiveField && rawBuffer.isNotEmpty()) {
+                appendToRawBuffer(text)
+            } else {
+                ic.commitText(text, 1)
+            }
+        }
+        if (rawBuffer.isEmpty()) updateUi()
+    }
+
+    private fun onPickerText(text: String) {
+        if (text.isEmpty()) return
+        val ic = currentInputConnection ?: return
+        lastShiftTime = 0
+        shortestCodeHintText = null
+        if (reverseLookupState == ReverseLookupState.ACTIVE) cancelReverseLookup()
+        if (!englishLocked && !isInSensitiveField && rawBuffer.isNotEmpty()) {
+            val start = rawBuffer.length
+            rawPickerSegments.add(start to start + text.length)
+            appendToRawBuffer(text)
+        } else {
+            // One commit preserves ZWJ, variation selectors, flags and emoticon spaces.
+            ic.commitText(text, 1)
+            updateUi()
+        }
+    }
+
     override fun onText(text: CharSequence?) {
         if (text.isNullOrEmpty()) return
+        if (pickerMode != null) {
+            onPickerText(text.toString())
+            return
+        }
         val ic = currentInputConnection ?: return
+        lastShiftTime = 0
         val clearedHint = shortestCodeHintText != null
         shortestCodeHintText = null
 
-        val isEmojiKeyboard = inputView?.keyboard === emojiKeyboard
-        if (isEmojiKeyboard && rawBuffer.isNotEmpty() && !isInSensitiveField) {
-            appendToRawBuffer(text)
-            return
-        }
-
-        val shouldDirectCommit =
-            isEmojiKeyboard || text.length != 1 || containsSurrogate(text)
+        val shouldDirectCommit = text.length != 1 || containsSurrogate(text)
         if (shouldDirectCommit) {
             if (reverseLookupState == ReverseLookupState.ACTIVE) {
                 cancelReverseLookup()
@@ -291,6 +369,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         // Intercept only when we have an input connection.
         val ic = currentInputConnection ?: return super.onKeyDown(keyCode, event)
+        lastShiftTime = 0
 
         val clearedHint = shortestCodeHintText != null
         shortestCodeHintText = null
@@ -303,6 +382,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         when (keyCode) {
+            KeyEvent.KEYCODE_BACK -> {
+                if (event.repeatCount == 0 && symbolPickerView?.handleBack() == true) return finish(true)
+                if (event.repeatCount == 0 && inputView?.handleBack() == true) return finish(true)
+            }
             KeyEvent.KEYCODE_DEL -> {
                 if (event.repeatCount == 0) {
                     suppressExternalDeleteUntilDeleteReleased = rawBuffer.isNotEmpty()
@@ -326,7 +409,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
         val unicodeChar = event.unicodeChar
         if (unicodeChar != 0 && !event.isCtrlPressed && !event.isAltPressed && !event.isMetaPressed) {
-            handlePrimaryCode(unicodeChar)
+            handlePrimaryCode(unicodeChar, preserveLetterCase = englishLocked)
             return finish(true)
         }
 
@@ -346,8 +429,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     // ---- Core logic ----
 
-    private fun handlePrimaryCode(primaryCode: Int) {
+    private fun handlePrimaryCode(primaryCode: Int, preserveLetterCase: Boolean = false) {
         val ic = currentInputConnection ?: return
+        if (primaryCode != Keyboard.KEYCODE_SHIFT) lastShiftTime = 0
         val clearedHint = shortestCodeHintText != null
         shortestCodeHintText = null
 
@@ -366,7 +450,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             10 -> handleEnter(ic)
             32 -> handleSpace(ic)
             in 48..57 -> handleDigit(primaryCode, ic)
-            else -> handleCharacter(primaryCode, ic)
+            else -> handleCharacter(primaryCode, ic, preserveLetterCase)
         }
 
         if (clearedHint && rawBuffer.isEmpty() && shortestCodeHintText == null) {
@@ -374,23 +458,32 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
     }
 
-    private fun applyShiftToLetter(ch: Char): Char {
-        val view = inputView
-        val isShifted = view?.isShifted == true
+    private fun applyShiftToLetter(ch: Char, preserveCase: Boolean = false): Char {
         val base = ch.lowercaseChar()
-        val typed = if (isShifted) base.uppercaseChar() else base
-        if (isShifted && !capsLock) {
-            view?.isShifted = false
+        val typed = if (preserveCase) ch else if (letterShifted) base.uppercaseChar() else base
+        // An intervening letter consumes one-shot Shift and ends the double-tap window.
+        lastShiftTime = 0
+        if (letterShifted && !capsLock) {
+            letterShifted = false
+            updateLetterShift()
         }
         return typed
     }
 
-    private fun handleCharacter(primaryCode: Int, ic: InputConnection) {
+    private fun handleCharacter(primaryCode: Int, ic: InputConnection, preserveLetterCase: Boolean = false) {
         if (reverseLookupState == ReverseLookupState.ACTIVE) {
             cancelReverseLookup()
         }
 
         val ch = primaryCode.toChar()
+
+        if (englishLocked) {
+            val typed = if (ch.isLetter() && !isSymbolsKeyboardActive()) {
+                applyShiftToLetter(ch, preserveLetterCase)
+            } else ch
+            ic.commitText(typed.toString(), 1)
+            return
+        }
 
         if (isSymbolsKeyboardActive()) {
             if (rawBuffer.isNotEmpty() && !isInSensitiveField) {
@@ -402,7 +495,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         if (ch.isLetter()) {
-            val typed = applyShiftToLetter(ch)
+            val typed = applyShiftToLetter(ch, preserveLetterCase)
             if (isInSensitiveField) {
                 ic.commitText(typed.toString(), 1)
                 return
@@ -462,6 +555,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleDigit(primaryCode: Int, ic: InputConnection) {
+        if (englishLocked) {
+            ic.commitText(primaryCode.toChar().toString(), 1)
+            return
+        }
         val digitIndex = primaryCode - '0'.toInt()
 
         if (reverseLookupState == ReverseLookupState.ACTIVE) {
@@ -509,7 +606,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
 
         if (rawBuffer.isNotEmpty()) {
-            rawBuffer.deleteCharAt(rawBuffer.length - 1)
+            val selection = rawPickerSegments.lastOrNull()
+            if (selection != null && selection.second == rawBuffer.length) {
+                rawBuffer.delete(selection.first, selection.second)
+                rawPickerSegments.removeAt(rawPickerSegments.lastIndex)
+            } else {
+                val start = Character.offsetByCodePoints(rawBuffer, rawBuffer.length, -1)
+                rawBuffer.delete(start, rawBuffer.length)
+            }
             updateCandidates()
             updateUi()
             return
@@ -525,7 +629,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             return
         }
 
-        val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION) ?: EditorInfo.IME_ACTION_NONE
+        val options = currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_ACTION_NONE
+        val action = if (options and EditorInfo.IME_FLAG_NO_ENTER_ACTION != 0) EditorInfo.IME_ACTION_NONE
+            else options and EditorInfo.IME_MASK_ACTION
         if (action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
             if (ic.performEditorAction(action)) return
         }
@@ -579,12 +685,14 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun clearState() {
         rawBuffer.setLength(0)
+        rawPickerSegments.clear()
         prefixCandidates = emptyList()
         exactCount = 0
         reverseLookupState = ReverseLookupState.NONE
         candidateBarView?.setExpanded(false)
         shortestCodeHintText = null
         inputView?.setSpaceSwipeEnabled(false)
+        symbolPickerView?.setSpaceSwipeEnabled(false)
     }
 
     private fun updateCandidates() {
@@ -679,15 +787,17 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         val rawText = rawBuffer.toString()
         val hintText = if (showShortestCodeHint) shortestCodeHintText else null
         // Keep the candidate bar space reserved to avoid keyboard jumping (layout thrash).
-        val shouldShowCandidateBar = rawText.isNotEmpty() || !hintText.isNullOrBlank()
-        candidateBarView?.visibility = if (shouldShowCandidateBar) View.VISIBLE else View.INVISIBLE
+        candidateBarView?.visibility = View.VISIBLE
+        candidateBarView?.setEnglishLocked(englishLocked)
         candidateBarView?.setState(
             rawText = rawText,
             prefixCandidates = prefixCandidates,
             exactCount = exactCount,
             hintText = hintText,
         )
-        inputView?.setSpaceSwipeEnabled(rawText.isNotEmpty() && !isInSensitiveField)
+        val spaceSwipeEnabled = rawText.isNotEmpty() && !isInSensitiveField
+        inputView?.setSpaceSwipeEnabled(spaceSwipeEnabled)
+        symbolPickerView?.setSpaceSwipeEnabled(spaceSwipeEnabled)
     }
 
     private fun reloadSettings() {
@@ -696,87 +806,18 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             SettingsKeys.KEY_KEYBOARD_HEIGHT_PERCENT,
             SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT,
         ).coerceAtLeast(SettingsKeys.MIN_KEYBOARD_HEIGHT_PERCENT)
-        var nextLayout =
-            prefs.getString(SettingsKeys.KEY_KEYBOARD_LAYOUT, SettingsKeys.DEFAULT_KEYBOARD_LAYOUT)
-                ?: SettingsKeys.DEFAULT_KEYBOARD_LAYOUT
         showNumberRow = prefs.getBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, SettingsKeys.DEFAULT_SHOW_NUMBER_ROW)
-        keyboardLeftShift = prefs.getBoolean(
-            SettingsKeys.KEY_KEYBOARD_LEFT_SHIFT,
-            SettingsKeys.DEFAULT_KEYBOARD_LEFT_SHIFT,
-        )
-        var nextLabelTop =
-            prefs.getBoolean(SettingsKeys.KEY_KEYBOARD_LABEL_TOP, SettingsKeys.DEFAULT_KEYBOARD_LABEL_TOP)
         alwaysShowIme = prefs.getBoolean(SettingsKeys.KEY_ALWAYS_SHOW_IME, SettingsKeys.DEFAULT_ALWAYS_SHOW_IME)
-
-        var needsMigration = false
-        var migrateShowNumberRow: Boolean? = null
-        when (nextLayout) {
-            "standard_label_top" -> {
-                nextLayout = "standard"
-                nextLabelTop = true
-                needsMigration = true
-            }
-            "standard_spacious_label_top" -> {
-                nextLayout = "standard_spacious"
-                nextLabelTop = true
-                needsMigration = true
-            }
-            "original_no_number" -> {
-                nextLayout = "original"
-                showNumberRow = false
-                migrateShowNumberRow = false
-                needsMigration = true
-            }
-        }
-        if (needsMigration) {
-            val editor = prefs.edit()
-                .putString(SettingsKeys.KEY_KEYBOARD_LAYOUT, nextLayout)
-                .putBoolean(SettingsKeys.KEY_KEYBOARD_LABEL_TOP, nextLabelTop)
-            if (migrateShowNumberRow != null) {
-                editor.putBoolean(SettingsKeys.KEY_SHOW_NUMBER_ROW, migrateShowNumberRow)
-            }
-            editor.apply()
-        }
-
-        keyboardLayout = nextLayout
-        keyboardLabelTop = nextLabelTop
-
-        val isStandardSpacious =
-            keyboardLayout == "standard_spacious"
-
-        qwertyKeyboard =
-            when {
-                keyboardLayout == "original" ->
-                    if (showNumberRow) getQwertyOriginalKeyboard() else getQwertyOriginalKeyboardNoNumber()
-                isStandardSpacious ->
-                    if (showNumberRow) {
-                        if (keyboardLeftShift) getQwertyStandardSpaciousLeftShiftKeyboard() else getQwertyStandardSpaciousKeyboard()
-                    } else {
-                        if (keyboardLeftShift) getQwertyStandardSpaciousLeftShiftKeyboardNoNumber() else getQwertyStandardSpaciousKeyboardNoNumber()
-                    }
-                else ->
-                    if (showNumberRow) {
-                        if (keyboardLeftShift) getQwertyStandardLeftShiftKeyboard() else getQwertyStandardKeyboard()
-                    } else {
-                        if (keyboardLeftShift) getQwertyStandardLeftShiftKeyboardNoNumber() else getQwertyStandardKeyboardNoNumber()
-                    }
-            }
-
-        if (
-            curKeyboard === qwertyOriginalKeyboard ||
-            curKeyboard === qwertyOriginalKeyboardNoNumber ||
-            curKeyboard === qwertyStandardKeyboard ||
-            curKeyboard === qwertyStandardKeyboardNoNumber ||
-            curKeyboard === qwertyStandardLeftShiftKeyboard ||
-            curKeyboard === qwertyStandardLeftShiftKeyboardNoNumber ||
-            curKeyboard === qwertyStandardSpaciousKeyboard ||
-            curKeyboard === qwertyStandardSpaciousKeyboardNoNumber ||
-            curKeyboard === qwertyStandardSpaciousLeftShiftKeyboard ||
-            curKeyboard === qwertyStandardSpaciousLeftShiftKeyboardNoNumber
-        ) {
-            curKeyboard = qwertyKeyboard
-        }
-        inputView?.setLabelTopAligned(keyboardLabelTop)
+        val wasQwerty = curKeyboard == null || curKeyboard === qwertyKeyboard
+        qwertyKeyboard = getQwertyFamiliarKeyboard(showNumberRow)
+        if (wasQwerty) curKeyboard = qwertyKeyboard
+        inputView?.setKeyHapticFeedbackEnabled(
+            prefs.getBoolean(SettingsKeys.KEY_HAPTIC_FEEDBACK, SettingsKeys.DEFAULT_HAPTIC_FEEDBACK),
+        )
+        symbolPickerView?.setHapticFeedbackEnabled(
+            prefs.getBoolean(SettingsKeys.KEY_HAPTIC_FEEDBACK, SettingsKeys.DEFAULT_HAPTIC_FEEDBACK),
+        )
+        symbolPickerView?.setHeightScale(keyboardHeightPercent / 100f)
         candidateInlineLimit = prefs.getInt(
             SettingsKeys.KEY_CANDIDATE_INLINE_LIMIT,
             SettingsKeys.DEFAULT_CANDIDATE_INLINE_LIMIT,
@@ -884,11 +925,29 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun setLatinKeyboard(nextKeyboard: FreeShiamyKeyboard?) {
+        pickerMode = null
+        symbolPickerView?.releasePages()
+        symbolPickerView?.visibility = View.GONE
+        inputView?.visibility = View.VISIBLE
         val shouldSupportLanguageSwitchKey =
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
         inputView?.keyboard = nextKeyboard
-        inputView?.setLabelTopAligned(keyboardLabelTop)
+        updateLetterShift()
+    }
+
+    private fun toggleEnglishLock() {
+        val ic = currentInputConnection ?: return
+        lastShiftTime = 0
+        // A mode change must not choose a Chinese candidate or discard pending literal text.
+        commitRawBuffer(ic)
+        englishLocked = !englishLocked
+        updateUi()
+    }
+
+    private fun updateLetterShift() {
+        val view = inputView ?: return
+        if (view.keyboard === qwertyKeyboard) view.setLetterShiftState(letterShifted, capsLock)
     }
 
     private fun getToken(): IBinder? {
@@ -898,30 +957,23 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleModeChange() {
-        val view = inputView ?: return
-        val current = view.keyboard
-        val symbols = symbolsKeyboard
-        val symbolsShifted = symbolsShiftedKeyboard
-        if (current === symbols || current === symbolsShifted || current === emojiKeyboard) {
-            setLatinKeyboard(qwertyKeyboard)
-        } else {
-            val target = symbols ?: getSymbolsKeyboard()
-            setLatinKeyboard(target)
-            target.isShifted = false
-        }
+        if (pickerMode != null) setLatinKeyboard(qwertyKeyboard)
+        else showPicker(CatalogMode.SYMBOLS)
     }
 
     private fun handleEmojiSwitch() {
-        val view = inputView ?: return
-        val current = view.keyboard
-        val emoji = emojiKeyboard
-        if (current === emoji) {
-            setLatinKeyboard(qwertyKeyboard)
-            return
-        }
-        val target = emoji ?: getEmojiKeyboard()
-        setLatinKeyboard(target)
-        target.isShifted = false
+        showPicker(CatalogMode.EMOJI)
+    }
+
+    private fun showPicker(mode: CatalogMode) {
+        val picker = symbolPickerView ?: return
+        inputView?.closing()
+        inputView?.visibility = View.GONE
+        pickerMode = mode
+        picker.visibility = View.VISIBLE
+        picker.setImeOptions(currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_ACTION_NONE)
+        picker.show(mode)
+        updateUi()
     }
 
     private fun handleLanguageSwitch() {
@@ -929,43 +981,26 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     }
 
     private fun handleShift() {
+        if (pickerMode != null) return
         val view = inputView ?: return
         val currentKeyboard = view.keyboard
 
         if (qwertyKeyboard === currentKeyboard) {
-            val now = System.currentTimeMillis()
+            val now = SystemClock.uptimeMillis()
             if (capsLock) {
                 capsLock = false
                 lastShiftTime = 0
-                view.isShifted = false
-                return
-            }
-
-            val alreadyShifted = view.isShifted
-            if (alreadyShifted && lastShiftTime + 800 > now) {
+                letterShifted = false
+            } else if (letterShifted && lastShiftTime != 0L && now - lastShiftTime < 800) {
                 capsLock = true
                 lastShiftTime = 0
-                view.isShifted = true
+                letterShifted = true
             } else {
-                view.isShifted = !alreadyShifted
-                lastShiftTime = now
+                letterShifted = !letterShifted
+                lastShiftTime = if (letterShifted) now else 0
             }
+            updateLetterShift()
             return
-        }
-
-        val symbols = getSymbolsKeyboard()
-        val symbolsShifted = getSymbolsShiftedKeyboard()
-        if (currentKeyboard === symbols) {
-            symbols.isShifted = true
-            setLatinKeyboard(symbolsShifted)
-            symbolsShifted.isShifted = true
-            return
-        }
-
-        if (currentKeyboard === symbolsShifted) {
-            symbolsShifted.isShifted = false
-            setLatinKeyboard(symbols)
-            symbols.isShifted = false
         }
     }
 
@@ -975,13 +1010,11 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
         requestHideSelf(0)
         inputView?.closing()
+        symbolPickerView?.releasePages()
     }
 
     private fun isSymbolsKeyboardActive(): Boolean {
-        val currentKeyboard = inputView?.keyboard
-        return currentKeyboard === symbolsKeyboard ||
-            currentKeyboard === symbolsShiftedKeyboard ||
-            currentKeyboard === emojiKeyboard
+        return pickerMode != null
     }
 
     private fun containsSurrogate(text: CharSequence): Boolean {
@@ -999,26 +1032,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         return created
     }
 
-    private fun resetKeyboardCache(precreateSymbols: Boolean) {
-        qwertyOriginalKeyboard = null
-        qwertyOriginalKeyboardNoNumber = null
-        qwertyStandardKeyboard = null
-        qwertyStandardKeyboardNoNumber = null
-        qwertyStandardLeftShiftKeyboard = null
-        qwertyStandardLeftShiftKeyboardNoNumber = null
-        qwertyStandardSpaciousKeyboard = null
-        qwertyStandardSpaciousKeyboardNoNumber = null
-        qwertyStandardSpaciousLeftShiftKeyboard = null
-        qwertyStandardSpaciousLeftShiftKeyboardNoNumber = null
+    private fun resetKeyboardCache() {
+        qwertyFamiliarKeyboard = null
+        qwertyFamiliarKeyboardNoNumber = null
         qwertyKeyboard = null
-        if (precreateSymbols) {
-            symbolsKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
-            symbolsShiftedKeyboard = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
-        } else {
-            symbolsKeyboard = null
-            symbolsShiftedKeyboard = null
-        }
-        emojiKeyboard = null
         curKeyboard = null
     }
 
@@ -1038,153 +1055,27 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         }
         lastConfig = Configuration(newConfig)
 
-        val view = inputView
-        val currentKeyboard = view?.keyboard
-        val wasSymbols = currentKeyboard === symbolsKeyboard
-        val wasSymbolsShifted = currentKeyboard === symbolsShiftedKeyboard
-        val wasEmoji = currentKeyboard === emojiKeyboard
-        val wasShifted = view?.isShifted == true
-
+        val activePicker = if (pickerMode != null) symbolPickerView?.mode else null
         displayContext = getDisplayContextCompat()
-        resetKeyboardCache(precreateSymbols = true)
+        resetKeyboardCache()
         reloadSettings()
         curKeyboard = qwertyKeyboard
-
-        val nextKeyboard =
-            when {
-                wasEmoji -> getEmojiKeyboard()
-                wasSymbolsShifted -> {
-                    val symbols = getSymbolsKeyboard()
-                    val shifted = getSymbolsShiftedKeyboard()
-                    symbols.isShifted = true
-                    shifted.isShifted = true
-                    shifted
-                }
-                wasSymbols -> {
-                    val symbols = getSymbolsKeyboard()
-                    val shifted = getSymbolsShiftedKeyboard()
-                    symbols.isShifted = false
-                    shifted.isShifted = false
-                    symbols
-                }
-                else -> qwertyKeyboard
-            }
-
-        if (view != null && nextKeyboard != null) {
-            setLatinKeyboard(nextKeyboard)
-            if (!wasSymbols && !wasSymbolsShifted && !wasEmoji) {
-                view.isShifted = wasShifted
-            }
-            view.setHeightScale(keyboardHeightPercent / 100f)
-            view.invalidateAllKeys()
-            view.requestLayout()
-        }
+        setLatinKeyboard(qwertyKeyboard)
+        inputView?.setHeightScale(keyboardHeightPercent / 100f)
+        inputView?.invalidateAllKeys()
+        inputView?.requestLayout()
+        if (activePicker != null && isInputViewShown) showPicker(activePicker)
         candidateBarView?.setLimits(candidateInlineLimit, candidateMoreLimit)
         candidateBarView?.requestLayout()
         return true
     }
 
-    private fun getQwertyOriginalKeyboard(): FreeShiamyKeyboard {
-        val cached = qwertyOriginalKeyboard
+    private fun getQwertyFamiliarKeyboard(withNumberRow: Boolean): FreeShiamyKeyboard {
+        val cached = if (withNumberRow) qwertyFamiliarKeyboard else qwertyFamiliarKeyboardNoNumber
         if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_original)
-        qwertyOriginalKeyboard = created
-        return created
-    }
-
-    private fun getQwertyOriginalKeyboardNoNumber(): FreeShiamyKeyboard {
-        val cached = qwertyOriginalKeyboardNoNumber
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_original_no_number)
-        qwertyOriginalKeyboardNoNumber = created
-        return created
-    }
-
-    private fun getQwertyStandardKeyboard(): FreeShiamyKeyboard {
-        val cached = qwertyStandardKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard)
-        qwertyStandardKeyboard = created
-        return created
-    }
-
-    private fun getQwertyStandardKeyboardNoNumber(): FreeShiamyKeyboard {
-        val cached = qwertyStandardKeyboardNoNumber
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_no_number)
-        qwertyStandardKeyboardNoNumber = created
-        return created
-    }
-
-    private fun getQwertyStandardLeftShiftKeyboard(): FreeShiamyKeyboard {
-        val cached = qwertyStandardLeftShiftKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_left_shift)
-        qwertyStandardLeftShiftKeyboard = created
-        return created
-    }
-
-    private fun getQwertyStandardLeftShiftKeyboardNoNumber(): FreeShiamyKeyboard {
-        val cached = qwertyStandardLeftShiftKeyboardNoNumber
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_left_shift_no_number)
-        qwertyStandardLeftShiftKeyboardNoNumber = created
-        return created
-    }
-
-    private fun getQwertyStandardSpaciousKeyboard(): FreeShiamyKeyboard {
-        val cached = qwertyStandardSpaciousKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious)
-        qwertyStandardSpaciousKeyboard = created
-        return created
-    }
-
-    private fun getQwertyStandardSpaciousKeyboardNoNumber(): FreeShiamyKeyboard {
-        val cached = qwertyStandardSpaciousKeyboardNoNumber
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_no_number)
-        qwertyStandardSpaciousKeyboardNoNumber = created
-        return created
-    }
-
-    private fun getQwertyStandardSpaciousLeftShiftKeyboard(): FreeShiamyKeyboard {
-        val cached = qwertyStandardSpaciousLeftShiftKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_left_shift)
-        qwertyStandardSpaciousLeftShiftKeyboard = created
-        return created
-    }
-
-    private fun getQwertyStandardSpaciousLeftShiftKeyboardNoNumber(): FreeShiamyKeyboard {
-        val cached = qwertyStandardSpaciousLeftShiftKeyboardNoNumber
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.qwerty_standard_spacious_left_shift_no_number)
-        qwertyStandardSpaciousLeftShiftKeyboardNoNumber = created
-        return created
-    }
-
-    private fun getSymbolsKeyboard(): FreeShiamyKeyboard {
-        val cached = symbolsKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols)
-        symbolsKeyboard = created
-        return created
-    }
-
-    private fun getSymbolsShiftedKeyboard(): FreeShiamyKeyboard {
-        val cached = symbolsShiftedKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.symbols_shift)
-        symbolsShiftedKeyboard = created
-        return created
-    }
-
-    private fun getEmojiKeyboard(): FreeShiamyKeyboard {
-        val cached = emojiKeyboard
-        if (cached != null) return cached
-        val created = FreeShiamyKeyboard(requireDisplayContext(), R.xml.emoji)
-        emojiKeyboard = created
+        val resource = if (withNumberRow) R.xml.qwerty_familiar else R.xml.qwerty_familiar_no_number
+        val created = FreeShiamyKeyboard(requireDisplayContext(), resource)
+        if (withNumberRow) qwertyFamiliarKeyboard = created else qwertyFamiliarKeyboardNoNumber = created
         return created
     }
 
@@ -1215,7 +1106,9 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     override fun swipeLeft() {}
     override fun swipeDown() {}
     override fun swipeUp() {}
-    override fun onPress(primaryCode: Int) {}
+    override fun onPress(primaryCode: Int) {
+        if (primaryCode != 0) inputView?.performKeyHapticFeedback()
+    }
 
     override fun onRelease(primaryCode: Int) {}
 

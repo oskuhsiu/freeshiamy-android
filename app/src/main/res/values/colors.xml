@@ -8,8 +8,10 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="candidate_normal">#FF000000</color>
-    <color name="candidate_recommended">#FFE35900</color>
-    <color name="candidate_other">#ff808080</color>
-    <color name="candidate_background">#bbffffff</color>
+    <color name="candidate_normal">#FF37474F</color>
+    <color name="candidate_recommended">#FF00796B</color>
+    <color name="candidate_other">#FF657379</color>
+    <color name="candidate_background">#FFE3E7EC</color>
+    <color name="keyboard_background">#FFEBEEF3</color>
+    <color name="keyboard_space_background">#FFCDD2D8</color>
 </resources>

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Keyboard xmlns:android="http://schemas.android.com/apk/res/android"
+    android:keyWidth="10%p"
+    android:keyHeight="56dp"
+    android:horizontalGap="0px"
+    android:verticalGap="0px"
+    android:keyBackground="@drawable/keyboard_key_background"
+    android:keyPreviewLayout="@layout/key_preview"
+    android:keyPreviewHeight="64dp"
+    android:keyPreviewOffset="-6dp"
+    android:keyTextColor="@color/candidate_normal"
+    android:shadowColor="@android:color/transparent"
+    android:shadowRadius="0"
+    android:keyTextSize="@dimen/keyboard_letter_text_size"
+    android:labelTextSize="14sp">
+    <Row android:rowEdgeFlags="bottom">
+        <Key android:codes="-2" android:keyLabel="ABC" android:keyWidth="15%p" android:keyEdgeFlags="left" />
+        <Key android:codes="44" android:keyLabel="," android:keyWidth="10%p" />
+        <Key android:codes="32" android:keyLabel="空白" android:keyWidth="50%p" android:isRepeatable="true" />
+        <Key android:codes="46" android:keyLabel="." android:keyWidth="10%p" />
+        <Key android:codes="10" android:keyIcon="@drawable/ic_keyboard_enter" android:keyWidth="15%p" android:keyEdgeFlags="right" />
+    </Row>
+</Keyboard>

@@ -13,14 +13,18 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="8dp"
-        android:paddingVertical="0dp">
+        android:paddingVertical="0dp"
+        android:visibility="gone">
 
         <TextView
             android:id="@+id/raw_text"
-            android:layout_width="0dp"
+            android:layout_width="64dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.35"
+            android:background="@drawable/keyboard_key_background"
+            android:clickable="true"
+            android:contentDescription="@string/candidate_commit_raw"
             android:ellipsize="end"
+            android:focusable="true"
             android:gravity="center_vertical"
             android:maxLines="1"
             android:paddingHorizontal="8dp"
@@ -31,7 +35,7 @@
             android:id="@+id/candidate_scroll"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.65"
+            android:layout_weight="1"
             android:fillViewport="true"
             android:overScrollMode="never"
             android:scrollbars="none">
@@ -48,7 +52,7 @@
             android:id="@+id/hint_text"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.65"
+            android:layout_weight="1"
             android:ellipsize="end"
             android:gravity="center_vertical|end"
             android:maxLines="1"
@@ -59,14 +63,110 @@
 
         <Button
             android:id="@+id/more_button"
-            android:layout_width="wrap_content"
+            android:layout_width="48dp"
             android:layout_height="match_parent"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/candidate_expand"
             android:minHeight="0dp"
-            android:minWidth="0dp"
+            android:minWidth="48dp"
             android:paddingHorizontal="10dp"
             android:paddingVertical="0dp"
             android:text="▼"
             android:textColor="@color/candidate_other" />
+
+        <ImageButton
+            android:id="@+id/tools_button"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_tools_description"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_tools" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/keyboard_toolbar_row"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/candidate_bar_height"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="8dp">
+
+        <ImageButton
+            android:id="@+id/keyboard_settings_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_settings"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_settings" />
+
+        <ImageButton
+            android:id="@+id/keyboard_switch_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_switch"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_switch" />
+
+        <ImageButton
+            android:id="@+id/keyboard_hide_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_hide_description"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_hide" />
+
+        <ImageButton
+            android:id="@+id/keyboard_english_lock_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_english_lock_off"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_english_lock" />
+
+        <ImageButton
+            android:id="@+id/keyboard_return_button"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/keyboard_key_background"
+            android:backgroundTint="@null"
+            android:contentDescription="@string/keyboard_return_description"
+            android:minHeight="0dp"
+            android:minWidth="48dp"
+            android:padding="12dp"
+            android:scaleType="center"
+            android:src="@drawable/ic_keyboard_back"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ScrollView

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="keyboard_height_adjustment_summary" formatted="false">微調鍵盤高度，100% 為原始比例</string>
+    <string name="haptic_feedback_title">按鍵觸覺回饋</string>
+    <string name="haptic_feedback_summary">按下按鍵時提供觸覺回饋，並遵循系統設定</string>
+    <string name="keyboard_tools_description">開啟鍵盤工具</string>
+    <string name="keyboard_settings">設定</string>
+    <string name="keyboard_switch">切換鍵盤</string>
+    <string name="keyboard_hide">收起</string>
+    <string name="keyboard_hide_description">收起鍵盤</string>
+    <string name="keyboard_return_description">返回候選列</string>
+    <string name="keyboard_english_lock_off">英文鎖定，已關閉；點按以直接輸出英文</string>
+    <string name="keyboard_english_lock_on">英文鎖定，已開啟；點按以回到字根輸入</string>
+    <string name="candidate_commit_raw">送出原碼</string>
+    <string name="candidate_commit_raw_description">送出原碼：%1$s</string>
+    <string name="candidate_expand">展開更多候選</string>
+    <string name="candidate_collapse">收合更多候選</string>
+
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_symbols">符號</string>
+    <string name="catalog_emoji">Emoji</string>
+    <string name="catalog_emoticons">顏文字</string>
+    <string name="catalog_choose_mode">%1$s，選擇符號種類</string>
+    <string name="catalog_previous_page">上一頁</string>
+    <string name="catalog_next_page">下一頁</string>
+    <string name="catalog_delete">刪除</string>
+    <string name="catalog_page_description">%1$s，第 %2$d 頁，共 %3$d 頁</string>
+    <string name="catalog_item_with_variants">%1$s；長按選擇變體：%2$s</string>
+</resources>

@@ -1,0 +1,1541 @@
+{
+  "schema": "freeshiamy/google-zhuyin-symbol-reference/v1",
+  "recorded_at": "2026-10-23",
+  "reference": {
+    "package": "com.google.android.apps.inputmethod.zhuyin",
+    "service": ".ZhuyinInputMethodService",
+    "version": "2.4.5.164561151-arm64-v8a",
+    "code": 2451413,
+    "sha256": "5f6dc14d26194a29abfb3da71688b76417115054f078d22b1e13f512305a0dc3",
+    "mode": "English lowercase QWERTY"
+  },
+  "letters_live": {
+    "q": {
+      "rows": [
+        [
+          "1",
+          "Q"
+        ]
+      ],
+      "displayed": [
+        "1",
+        "Q"
+      ],
+      "default": "1"
+    },
+    "w": {
+      "rows": [
+        [
+          "2",
+          "W"
+        ]
+      ],
+      "displayed": [
+        "2",
+        "W"
+      ],
+      "default": "2"
+    },
+    "e": {
+      "rows": [
+        [
+          "ě",
+          "ē",
+          "é",
+          "è"
+        ],
+        [
+          "ê",
+          "3",
+          "E",
+          "ë"
+        ]
+      ],
+      "displayed": [
+        "ě",
+        "ē",
+        "é",
+        "è",
+        "ê",
+        "3",
+        "E",
+        "ë"
+      ],
+      "default": "3"
+    },
+    "r": {
+      "rows": [
+        [
+          "4",
+          "R"
+        ]
+      ],
+      "displayed": [
+        "4",
+        "R"
+      ],
+      "default": "4"
+    },
+    "t": {
+      "rows": [
+        [
+          "5",
+          "T"
+        ]
+      ],
+      "displayed": [
+        "5",
+        "T"
+      ],
+      "default": "5"
+    },
+    "y": {
+      "rows": [
+        [
+          "6",
+          "Y"
+        ]
+      ],
+      "displayed": [
+        "6",
+        "Y"
+      ],
+      "default": "6"
+    },
+    "u": {
+      "rows": [
+        [
+          "ǔ",
+          "ū",
+          "ú",
+          "ù"
+        ],
+        [
+          "û",
+          "7",
+          "U",
+          "ü"
+        ]
+      ],
+      "displayed": [
+        "ǔ",
+        "ū",
+        "ú",
+        "ù",
+        "û",
+        "7",
+        "U",
+        "ü"
+      ],
+      "default": "7"
+    },
+    "i": {
+      "rows": [
+        [
+          "ì",
+          "ǐ",
+          "ī",
+          "í"
+        ],
+        [
+          "ï",
+          "î",
+          "8",
+          "I"
+        ]
+      ],
+      "displayed": [
+        "ì",
+        "ǐ",
+        "ī",
+        "í",
+        "ï",
+        "î",
+        "8",
+        "I"
+      ],
+      "default": "8"
+    },
+    "o": {
+      "rows": [
+        [
+          null,
+          "œ",
+          "ø",
+          "õ"
+        ],
+        [
+          "ò",
+          "ǒ",
+          "ó",
+          "ō"
+        ],
+        [
+          "ö",
+          "ô",
+          "O",
+          "9"
+        ]
+      ],
+      "displayed": [
+        "œ",
+        "ø",
+        "õ",
+        "ò",
+        "ǒ",
+        "ó",
+        "ō",
+        "ö",
+        "ô",
+        "O",
+        "9"
+      ],
+      "default": "9"
+    },
+    "p": {
+      "rows": [
+        [
+          "P",
+          "0"
+        ]
+      ],
+      "displayed": [
+        "P",
+        "0"
+      ],
+      "default": "0"
+    },
+    "a": {
+      "rows": [
+        [
+          "ã",
+          "å",
+          "æ",
+          null
+        ],
+        [
+          "ā",
+          "á",
+          "ǎ",
+          "à"
+        ],
+        [
+          "@",
+          "A",
+          "â",
+          "ä"
+        ]
+      ],
+      "displayed": [
+        "ã",
+        "å",
+        "æ",
+        "ā",
+        "á",
+        "ǎ",
+        "à",
+        "@",
+        "A",
+        "â",
+        "ä"
+      ],
+      "default": "@"
+    },
+    "s": {
+      "rows": [
+        [
+          "ß",
+          "*",
+          "S"
+        ]
+      ],
+      "displayed": [
+        "ß",
+        "*",
+        "S"
+      ],
+      "default": "*"
+    },
+    "d": {
+      "rows": [
+        [
+          "+",
+          "D"
+        ]
+      ],
+      "displayed": [
+        "+",
+        "D"
+      ],
+      "default": "+"
+    },
+    "f": {
+      "rows": [
+        [
+          "-",
+          "F"
+        ]
+      ],
+      "displayed": [
+        "-",
+        "F"
+      ],
+      "default": "-"
+    },
+    "g": {
+      "rows": [
+        [
+          "=",
+          "G"
+        ]
+      ],
+      "displayed": [
+        "=",
+        "G"
+      ],
+      "default": "="
+    },
+    "h": {
+      "rows": [
+        [
+          "/",
+          "H"
+        ]
+      ],
+      "displayed": [
+        "/",
+        "H"
+      ],
+      "default": "/"
+    },
+    "j": {
+      "rows": [
+        [
+          "#",
+          "J"
+        ]
+      ],
+      "displayed": [
+        "#",
+        "J"
+      ],
+      "default": "#"
+    },
+    "k": {
+      "rows": [
+        [
+          "(",
+          "K"
+        ]
+      ],
+      "displayed": [
+        "(",
+        "K"
+      ],
+      "default": "("
+    },
+    "l": {
+      "rows": [
+        [
+          "L",
+          ")"
+        ]
+      ],
+      "displayed": [
+        "L",
+        ")"
+      ],
+      "default": ")"
+    },
+    "z": {
+      "rows": [
+        [
+          "'",
+          "Z"
+        ]
+      ],
+      "displayed": [
+        "'",
+        "Z"
+      ],
+      "default": "'"
+    },
+    "x": {
+      "rows": [
+        [
+          ":",
+          "X"
+        ]
+      ],
+      "displayed": [
+        ":",
+        "X"
+      ],
+      "default": ":"
+    },
+    "c": {
+      "rows": [
+        [
+          "ç",
+          "\"",
+          "C"
+        ]
+      ],
+      "displayed": [
+        "ç",
+        "\"",
+        "C"
+      ],
+      "default": "\""
+    },
+    "v": {
+      "rows": [
+        [
+          "ǚ",
+          "ǖ",
+          "ǘ",
+          "ǜ"
+        ],
+        [
+          "¿",
+          "?",
+          "V",
+          "ü"
+        ]
+      ],
+      "displayed": [
+        "ǚ",
+        "ǖ",
+        "ǘ",
+        "ǜ",
+        "¿",
+        "?",
+        "V",
+        "ü"
+      ],
+      "default": "?"
+    },
+    "b": {
+      "rows": [
+        [
+          "¡",
+          "!",
+          "B"
+        ]
+      ],
+      "displayed": [
+        "¡",
+        "!",
+        "B"
+      ],
+      "default": "!"
+    },
+    "n": {
+      "rows": [
+        [
+          "ñ",
+          "~",
+          "N"
+        ]
+      ],
+      "displayed": [
+        "ñ",
+        "~",
+        "N"
+      ],
+      "default": "~"
+    },
+    "m": {
+      "rows": [
+        [
+          "…",
+          "M"
+        ]
+      ],
+      "displayed": [
+        "…",
+        "M"
+      ],
+      "default": "…"
+    }
+  },
+  "punctuation_live": {
+    ".": {
+      "rows": [
+        [
+          "^_^",
+          ":)",
+          ":(",
+          ":P",
+          ":D"
+        ],
+        [
+          "&",
+          "^",
+          "$",
+          "_",
+          "%"
+        ],
+        [
+          ";",
+          ":",
+          "…",
+          "?",
+          "!"
+        ]
+      ],
+      "displayed": [
+        "^_^",
+        ":)",
+        ":(",
+        ":P",
+        ":D",
+        "&",
+        "^",
+        "$",
+        "_",
+        "%",
+        ";",
+        ":",
+        "…",
+        "?",
+        "!"
+      ],
+      "default": "?"
+    },
+    ",": {
+      "kind": "action_menu",
+      "characters": [],
+      "default_action": "Emoji palette",
+      "icons_left_to_right": [
+        "square with hand-like mark",
+        "smiley face (default selected)",
+        "gear"
+      ]
+    }
+  },
+  "observed_catalog_pages": {
+    "page1": [
+      [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "0"
+      ],
+      [
+        "!",
+        "@",
+        "#",
+        "$",
+        "%",
+        "^",
+        "&",
+        "*",
+        "(",
+        ")"
+      ],
+      [
+        "'",
+        "\"",
+        "=",
+        "_",
+        "`",
+        ":",
+        ";",
+        "?"
+      ]
+    ],
+    "page2": [
+      [
+        "~",
+        "|",
+        "+",
+        "-",
+        "\\",
+        "/",
+        "[",
+        "]",
+        "{",
+        "}"
+      ],
+      [
+        "<",
+        ">",
+        "“",
+        "”",
+        "·",
+        "‘",
+        "’",
+        "¡",
+        "¿",
+        "￥"
+      ],
+      [
+        "€",
+        "£",
+        "¢",
+        "©",
+        "®",
+        "™",
+        "℃",
+        "℉"
+      ]
+    ]
+  },
+  "symbol_long_press_live": {
+    "page1:1": {
+      "rows": [
+        [
+          "¹",
+          "½",
+          "⅓",
+          "¼",
+          "⅛"
+        ]
+      ],
+      "displayed": [
+        "¹",
+        "½",
+        "⅓",
+        "¼",
+        "⅛"
+      ],
+      "default": "¹",
+      "popup": true
+    },
+    "page1:0": {
+      "rows": [
+        [
+          "ⁿ",
+          "∅"
+        ]
+      ],
+      "displayed": [
+        "ⁿ",
+        "∅"
+      ],
+      "default": "∅",
+      "popup": true
+    },
+    "page1:$": {
+      "rows": [
+        [
+          "¥",
+          "£",
+          "¢",
+          "€",
+          "₱"
+        ]
+      ],
+      "displayed": [
+        "¥",
+        "£",
+        "¢",
+        "€",
+        "₱"
+      ],
+      "default": "¢",
+      "popup": true
+    },
+    "page1:'": {
+      "rows": [
+        [
+          "‚",
+          "‘",
+          "’",
+          "‹",
+          "›"
+        ]
+      ],
+      "displayed": [
+        "‚",
+        "‘",
+        "’",
+        "‹",
+        "›"
+      ],
+      "default": "‚",
+      "popup": true
+    },
+    "page1:\"": {
+      "rows": [
+        [
+          "”",
+          "„",
+          "“",
+          "«",
+          "»"
+        ]
+      ],
+      "displayed": [
+        "”",
+        "„",
+        "“",
+        "«",
+        "»"
+      ],
+      "default": "„",
+      "popup": true
+    },
+    "page2:€": {
+      "rows": [],
+      "displayed": [],
+      "default": null,
+      "popup": false
+    }
+  },
+  "compiled_symbol_resources": {
+    "0": {
+      "codepoint": "U+0030",
+      "press_output": "0",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "∅",
+        "ⁿ"
+      ],
+      "compiled_default": "∅",
+      "status": "explicit_long_press_data"
+    },
+    "1": {
+      "codepoint": "U+0031",
+      "press_output": "1",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "¹",
+        "½",
+        "⅓",
+        "¼",
+        "⅛"
+      ],
+      "compiled_default": "¹",
+      "status": "explicit_long_press_data"
+    },
+    "2": {
+      "codepoint": "U+0032",
+      "press_output": "2",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "²",
+        "⅔"
+      ],
+      "compiled_default": "²",
+      "status": "explicit_long_press_data"
+    },
+    "3": {
+      "codepoint": "U+0033",
+      "press_output": "3",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "³",
+        "¾",
+        "⅜"
+      ],
+      "compiled_default": "³",
+      "status": "explicit_long_press_data"
+    },
+    "4": {
+      "codepoint": "U+0034",
+      "press_output": "4",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "⁴"
+      ],
+      "compiled_default": "⁴",
+      "status": "explicit_long_press_data"
+    },
+    "5": {
+      "codepoint": "U+0035",
+      "press_output": "5",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "⅝"
+      ],
+      "compiled_default": "⅝",
+      "status": "explicit_long_press_data"
+    },
+    "6": {
+      "codepoint": "U+0036",
+      "press_output": "6",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "7": {
+      "codepoint": "U+0037",
+      "press_output": "7",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [
+        "⅞"
+      ],
+      "compiled_default": "⅞",
+      "status": "explicit_long_press_data"
+    },
+    "8": {
+      "codepoint": "U+0038",
+      "press_output": "8",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "9": {
+      "codepoint": "U+0039",
+      "press_output": "9",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_numbers.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "@": {
+      "codepoint": "U+0040",
+      "press_output": "@",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "#": {
+      "codepoint": "U+0023",
+      "press_output": "#",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "$": {
+      "codepoint": "U+0024",
+      "press_output": "$",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "¢",
+        "€",
+        "£",
+        "₱",
+        "¥"
+      ],
+      "compiled_default": "¢",
+      "status": "explicit_long_press_data"
+    },
+    "%": {
+      "codepoint": "U+0025",
+      "press_output": "%",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "‰"
+      ],
+      "compiled_default": "‰",
+      "status": "explicit_long_press_data"
+    },
+    "&": {
+      "codepoint": "U+0026",
+      "press_output": "&",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "*": {
+      "codepoint": "U+002A",
+      "press_output": "*",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "★",
+        "†",
+        "‡"
+      ],
+      "compiled_default": "★",
+      "status": "explicit_long_press_data"
+    },
+    "-": {
+      "codepoint": "U+002D",
+      "press_output": "-",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "—",
+        "_",
+        "–",
+        "·"
+      ],
+      "compiled_default": "—",
+      "status": "explicit_long_press_data"
+    },
+    "=": {
+      "codepoint": "U+003D",
+      "press_output": "=",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "≠",
+        "≈",
+        "∞"
+      ],
+      "compiled_default": "≠",
+      "status": "explicit_long_press_data"
+    },
+    "(": {
+      "codepoint": "U+0028",
+      "press_output": "(",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "<",
+        "{",
+        "["
+      ],
+      "compiled_default": "<",
+      "status": "explicit_long_press_data"
+    },
+    ")": {
+      "codepoint": "U+0029",
+      "press_output": ")",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        ">",
+        "}",
+        "]"
+      ],
+      "compiled_default": ">",
+      "status": "explicit_long_press_data"
+    },
+    "!": {
+      "codepoint": "U+0021",
+      "press_output": "!",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "¡"
+      ],
+      "compiled_default": "¡",
+      "status": "explicit_long_press_data"
+    },
+    "\"": {
+      "codepoint": "U+0022",
+      "press_output": "\"",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "„",
+        "“",
+        "”",
+        "«",
+        "»"
+      ],
+      "compiled_default": "„",
+      "status": "explicit_long_press_data",
+      "variant_tw": {
+        "resource_path": "res/xml/softkeys_input_symbol_sub_category_favorate_tw.xml",
+        "compiled_long_press_data": [],
+        "status": "ASCII key present but no long_press_data attribute"
+      }
+    },
+    "'": {
+      "codepoint": "U+0027",
+      "press_output": "'",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "‚",
+        "‘",
+        "’",
+        "‹",
+        "›"
+      ],
+      "compiled_default": "‚",
+      "status": "explicit_long_press_data",
+      "variant_tw": {
+        "resource_path": "res/xml/softkeys_input_symbol_sub_category_favorate_tw.xml",
+        "compiled_long_press_data": [],
+        "status": "ASCII key present but no long_press_data attribute"
+      }
+    },
+    ":": {
+      "codepoint": "U+003A",
+      "press_output": ":",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    ";": {
+      "codepoint": "U+003B",
+      "press_output": ";",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "/": {
+      "codepoint": "U+002F",
+      "press_output": "/",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "?": {
+      "codepoint": "U+003F",
+      "press_output": "?",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "¿"
+      ],
+      "compiled_default": "¿",
+      "status": "explicit_long_press_data"
+    },
+    ",": {
+      "codepoint": "U+002C",
+      "press_output": ",",
+      "resource_paths": [
+        "res/xml/softkeys_input_non_prime_bottom_symbol.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    ".": {
+      "codepoint": "U+002E",
+      "press_output": ".",
+      "resource_paths": [
+        "res/xml/softkeys_input_non_prime_bottom_symbol.xml"
+      ],
+      "compiled_long_press_data": [
+        "…"
+      ],
+      "compiled_default": "…",
+      "status": "explicit_long_press_data"
+    },
+    "~": {
+      "codepoint": "U+007E",
+      "press_output": "~",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "±": {
+      "codepoint": "U+00B1",
+      "press_output": "±",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "×": {
+      "codepoint": "U+00D7",
+      "press_output": "×",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "÷": {
+      "codepoint": "U+00F7",
+      "press_output": "÷",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "•": {
+      "codepoint": "U+2022",
+      "press_output": "•",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_shape.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "°": {
+      "codepoint": "U+00B0",
+      "press_output": "°",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "`": {
+      "codepoint": "U+0060",
+      "press_output": "`",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "´": {
+      "codepoint": "U+00B4",
+      "press_output": "´",
+      "resource_paths": [],
+      "compiled_long_press_data": null,
+      "compiled_default": null,
+      "status": "not_found_in_scanned_current_symbol_resources"
+    },
+    "{": {
+      "codepoint": "U+007B",
+      "press_output": "{",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "}": {
+      "codepoint": "U+007D",
+      "press_output": "}",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "©": {
+      "codepoint": "U+00A9",
+      "press_output": "©",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "£": {
+      "codepoint": "U+00A3",
+      "press_output": "£",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "€": {
+      "codepoint": "U+20AC",
+      "press_output": "€",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "^": {
+      "codepoint": "U+005E",
+      "press_output": "^",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_basic_symbols.xml"
+      ],
+      "compiled_long_press_data": [
+        "↑",
+        "↓",
+        "←",
+        "→"
+      ],
+      "compiled_default": "↑",
+      "status": "explicit_long_press_data"
+    },
+    "®": {
+      "codepoint": "U+00AE",
+      "press_output": "®",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "¥": {
+      "codepoint": "U+00A5",
+      "press_output": "¥",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "_": {
+      "codepoint": "U+005F",
+      "press_output": "_",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "+": {
+      "codepoint": "U+002B",
+      "press_output": "+",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "±"
+      ],
+      "compiled_default": "±",
+      "status": "explicit_long_press_data"
+    },
+    "[": {
+      "codepoint": "U+005B",
+      "press_output": "[",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "]": {
+      "codepoint": "U+005D",
+      "press_output": "]",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "¡": {
+      "codepoint": "U+00A1",
+      "press_output": "¡",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "<": {
+      "codepoint": "U+003C",
+      "press_output": "<",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "≤",
+        "‹",
+        "«"
+      ],
+      "compiled_default": "≤",
+      "status": "explicit_long_press_data"
+    },
+    ">": {
+      "codepoint": "U+003E",
+      "press_output": ">",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [
+        "≥",
+        "›",
+        "»"
+      ],
+      "compiled_default": "≥",
+      "status": "explicit_long_press_data"
+    },
+    "¢": {
+      "codepoint": "U+00A2",
+      "press_output": "¢",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "|": {
+      "codepoint": "U+007C",
+      "press_output": "|",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "\\": {
+      "codepoint": "U+005C",
+      "press_output": "\\",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    },
+    "¿": {
+      "codepoint": "U+00BF",
+      "press_output": "¿",
+      "resource_paths": [
+        "res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+      ],
+      "compiled_long_press_data": [],
+      "compiled_default": null,
+      "status": "explicit_no_long_press_data"
+    }
+  },
+  "favorite_resource": {
+    "path": "res/xml/softkeys_input_symbol_sub_category_favorate.xml",
+    "includes": [
+      "res/xml/softkeys_input_symbol_numbers.xml",
+      "res/xml/softkeys_input_symbol_basic_symbols.xml"
+    ],
+    "direct_param_data": [
+      "'",
+      "\"",
+      "=",
+      "_",
+      "`",
+      ":",
+      ";",
+      "?",
+      "~",
+      "|",
+      "+",
+      "-",
+      "\\",
+      "/",
+      "[",
+      "]",
+      "{",
+      "}",
+      "<",
+      ">",
+      "“",
+      "”",
+      "·",
+      "‘",
+      "’",
+      "¡",
+      "¿",
+      "￥",
+      "€",
+      "£",
+      "¢",
+      "©",
+      "®",
+      "™",
+      "℃",
+      "℉",
+      "°",
+      "§",
+      "№",
+      "†",
+      "‡",
+      "‥",
+      "…",
+      "‰",
+      "※",
+      "‾",
+      "⁄",
+      "‼",
+      "⁇",
+      "⁈",
+      "⁉",
+      "√",
+      "π",
+      "±",
+      "×",
+      "÷",
+      "¶",
+      "∆",
+      "¤",
+      "µ",
+      "‹",
+      "›",
+      "«",
+      "»"
+    ]
+  },
+  "resource_graph": [
+    {
+      "path": "res/xml/keyboard_non_prime_symbol.xml",
+      "id": "@id/keyboard_non_prime_symbol (0x7f0f0199)",
+      "initial_states": "LOCK_KEYBOARD+SUB_CATEGORY_2",
+      "includes": [
+        "@xml/keymapping_body_symbol",
+        "@xml/keymapping_bottom_symbol_two_pages",
+        "@xml/keymapping_language_specific"
+      ],
+      "category_softkeys": "res/xml/softkeys_input_symbol_sub_categories.xml -> SUB_CATEGORY_2 -> res/xml/softkeys_input_symbol_sub_category_favorate.xml"
+    },
+    {
+      "path": "res/xml/keyboard_non_prime_symbol_tw.xml",
+      "id": "@id/keyboard_non_prime_symbol_tw (0x7f0f019a)",
+      "initial_states": "LOCK_KEYBOARD+SUB_CATEGORY_2",
+      "includes": [
+        "@xml/keymapping_body_symbol_tw",
+        "@xml/keymapping_bottom_symbol"
+      ],
+      "category_softkeys": "res/xml/softkeys_input_symbol_sub_categories_tw.xml -> SUB_CATEGORY_2 -> res/xml/softkeys_input_symbol_sub_category_favorate_tw.xml"
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_templates.xml",
+      "templates": [
+        {
+          "id": "@id/softkey_template_symbol_number (0x7f0f03ad)",
+          "press": "KEYCODE=$param_keycode$, data=$param_data$, intention=COMMIT",
+          "long_press": "LONG_PRESS data=$long_press_data$, keycode=PLAIN_TEXT, intention=COMMIT"
+        },
+        {
+          "id": "@id/softkey_template_light_symbol (0x7f0f03a7)",
+          "press": "SHORT_TEXT data=$param_data$, intention=COMMIT",
+          "long_press": "LONG_PRESS data=$long_press_data$, keycode=SHORT_TEXT, intention=COMMIT"
+        },
+        {
+          "id": "@id/softkey_template_light_symbol_auto_sized (0x7f0f03a8)",
+          "press": "SHORT_TEXT data=$param_data$, intention=COMMIT",
+          "long_press": "LONG_PRESS data=$long_press_data$, keycode=SHORT_TEXT, intention=COMMIT"
+        }
+      ]
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_numbers.xml",
+      "template_id": "@id/softkey_template_symbol_number (0x7f0f03ad)",
+      "facts": "IDs softkey_digit_1..9 and softkey_digit_0; explicit param_keycode KEYCODE_1..KEYCODE_0; explicit long_press_data where present."
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_basic_symbols.xml",
+      "template_id": "@id/softkey_template_light_symbol (0x7f0f03a7)",
+      "facts": "Explicit ! @ # $ % ^ & * ( ); long_press_data on ! $ % ^ * ( )."
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_sub_category_favorate.xml",
+      "template_id": "@id/softkey_template_light_symbol (0x7f0f03a7)",
+      "facts": "ASCII punctuation/quotes and symbols; explicit long_press_data on apostrophe, double quote, equals, question, plus, minus, less-than, greater-than."
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_sub_category_favorate_tw.xml",
+      "template_id": "@id/softkey_template_light_symbol (0x7f0f03a7)",
+      "facts": "TW variant contains ASCII apostrophe/double quote but no long_press_data; includes full-width Chinese punctuation."
+    },
+    {
+      "path": "res/xml/softkeys_input_non_prime_bottom_symbol.xml",
+      "template_id": "@+id/softkey_template_symbol_bottom (0x7f0f071e)",
+      "keys": [
+        {
+          "id": "@id/softkey_comma (0x7f0f023b)",
+          "param_data": ",",
+          "long_press_data": null
+        },
+        {
+          "id": "@id/softkey_period (0x7f0f0349)",
+          "param_data": ".",
+          "long_press_data": [
+            "…"
+          ]
+        },
+        {
+          "id": "@id/softkey_less_than (0x7f0f02e4)",
+          "param_data": "<",
+          "long_press_data": [
+            "≤",
+            "‹",
+            "«"
+          ]
+        },
+        {
+          "id": "@id/softkey_more_than (0x7f0f02f6)",
+          "param_data": ">",
+          "long_press_data": [
+            "≥",
+            "›",
+            "»"
+          ]
+        }
+      ]
+    },
+    {
+      "path": "res/xml/softkeys_input_symbol_sub_category_shape.xml",
+      "template_id": "@id/softkey_template_light_symbol (0x7f0f03a7)",
+      "facts": "Bullet param_data=• with no long_press_data."
+    }
+  ],
+  "limitations": [
+    "Reference is Google Zhuyin 2.4.5 English lowercase mode, not modern Gboard.",
+    "Only first two horizontal pages of the 1?# category were captured; other pages/categories, uppercase layouts, and full emoji were not enumerated.",
+    "Compiled symbol mapping covers 56 distinct FreeShiamy keys, not the entire reference catalog.",
+    "Favorite resource order is XML order, not an observed page layout; includes are separate.",
+    "Observed default is the highlighted item without moving the pointer. Compiled default is only the first resource token.",
+    "Most options were visually read, not individually committed; compiled token order can differ from on-screen order.",
+    "Missing long_press_data is not proof that dynamic code has no action.",
+    "Comma leftmost action was not invoked; its function remains unconfirmed.",
+    "U+00B4 is a FreeShiamy key absent from scanned reference resources."
+  ],
+  "related_catalog": {
+    "path": "google-fatty-zhuyin-catalog.json",
+    "repository": "https://github.com/wdzeng/google-fatty-zhuin-ime",
+    "commit": "af24a6faa849da013b01a6b0debae52948d19424",
+    "scope": "Separate modified-repository static catalog; do not treat as official live reference."
+  }
+}

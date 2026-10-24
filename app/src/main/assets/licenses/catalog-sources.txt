@@ -1,0 +1,11 @@
+Symbol, emoji and text-emoticon character data
+
+Source: https://github.com/wdzeng/google-fatty-zhuin-ime
+Revision: af24a6faa849da013b01a6b0debae52948d19424
+Source inventory and transformations: doc/google-zhuyin-symbols.md
+Generator: scripts/generate_symbol_catalog.py
+
+The packaged catalog contains Unicode text sequences and their ordering and
+long-press associations. It does not contain the source project's executable
+code, APK, images or fonts. The keyboard interface and paging implementation
+are implemented in FreeShiamy.

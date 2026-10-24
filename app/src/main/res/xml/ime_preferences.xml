@@ -26,27 +26,8 @@
             android:key="keyboard_height_percent"
             android:max="220"
             app:min="90"
+            android:summary="@string/keyboard_height_adjustment_summary"
             android:title="鍵盤高度（%）" />
-
-        <ListPreference
-            android:defaultValue="standard"
-            android:entries="@array/keyboard_layout_entries"
-            android:entryValues="@array/keyboard_layout_entry_values"
-            android:key="keyboard_layout"
-            android:title="鍵盤排版"
-            app:useSimpleSummaryProvider="true" />
-
-        <SwitchPreferenceCompat
-            android:defaultValue="true"
-            android:key="keyboard_left_shift"
-            android:summary="Q/A/Z 三排往左移半格，Del 加寬貼齊右側"
-            android:title="QAZ 左移半格＋Del 加寬" />
-
-        <SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="keyboard_label_top"
-            android:summary="鍵帽文字靠上顯示"
-            android:title="文字靠上" />
 
         <SwitchPreferenceCompat
             android:defaultValue="true"
@@ -59,6 +40,12 @@
             android:key="always_show_ime"
             android:summary="即使偵測到硬體鍵盤也顯示此輸入法"
             android:title="永遠顯示鍵盤" />
+
+        <SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="haptic_feedback"
+            android:summary="@string/haptic_feedback_summary"
+            android:title="@string/haptic_feedback_title" />
 
     </PreferenceCategory>
 
