@@ -36,6 +36,7 @@ Google 注音實測對照、肥肥注音完整符號／Emoji／顏文字資料�
 ## 釋出與下載（GitHub Actions）
 本專案使用 GitHub Actions 自動編譯 **release APK**：
 - **觸發方式**：推送 Git tag（符合 `v*`，例如 `v1.0.0`）或手動 `workflow_dispatch`。
+- **重建既有版本**：在 `master` 手動執行 workflow，填入 `release_tag`（例如 `v1.3`），會從該 tag 編譯並發佈 APK；留空則僅產生 Actions artifact。
 - **如何打 tag**
   ```bash
   git tag -a v1.0.0 -m "v1.0.0"
