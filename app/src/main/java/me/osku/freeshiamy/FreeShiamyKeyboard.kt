@@ -14,10 +14,34 @@ import kotlin.math.roundToInt
 class FreeShiamyKeyboard : Keyboard {
 
     private data class KeyRow(val keys: List<Key>, val gapAfter: Int)
+    private data class KeyBounds(val key: Key, val x: Int, val width: Int, val gap: Int)
 
+    private val originalWidth = super.getMinWidth()
+    private val originalBounds = keys.map { KeyBounds(it, it.x, it.width, it.gap) }
+    private var layoutWidth: Int? = null
     private var baseRows: List<KeyRow>? = null
     private var layoutHeight: Int? = null
     private val keyIndices by lazy { IntArray(keys.size) { it } }
+
+    /** Framework resizing loses leading gaps and never expands keys back to their original size. */
+    fun updateKeyWidths(width: Int): Boolean {
+        val scale = width.toFloat() / originalWidth
+        var changed = false
+        for (bounds in originalBounds) {
+            val x = (bounds.x * scale).roundToInt()
+            val keyWidth = ((bounds.x + bounds.width) * scale).roundToInt() - x
+            val gap = (bounds.gap * scale).roundToInt()
+            val key = bounds.key
+            changed = changed || key.x != x || key.width != keyWidth || key.gap != gap
+            key.x = x
+            key.width = keyWidth
+            key.gap = gap
+        }
+        layoutWidth = width
+        return changed
+    }
+
+    override fun getMinWidth(): Int = layoutWidth ?: super.getMinWidth()
 
     /** Rebuild from the original rows so adjusting height never compounds a previous scale. */
     fun updateKeyHeights(scale: Float, density: Float, maxHeight: Int): Boolean {

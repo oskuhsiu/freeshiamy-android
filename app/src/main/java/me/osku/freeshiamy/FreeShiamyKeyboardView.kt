@@ -119,8 +119,19 @@ class FreeShiamyKeyboardView : KeyboardView {
             requestedHeightScale, resources.displayMetrics.density, maxHeight,
         ) == true
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        setMeasuredDimension(measuredWidth, resolveSize(measuredHeight, heightMeasureSpec))
+        setMeasuredDimension(
+            resolveSize(measuredWidth, widthMeasureSpec),
+            resolveSize(measuredHeight, heightMeasureSpec),
+        )
         if (changed) invalidateAllKeys()
+    }
+
+    override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
+        super.onLayout(changed, left, top, right, bottom)
+        // Restore after framework resizing, including keyboard replacement at unchanged view bounds.
+        if ((keyboard as? FreeShiamyKeyboard)?.updateKeyWidths(right - left) == true) {
+            invalidateAllKeys()
+        }
     }
 
     override fun onDraw(canvas: Canvas) {
