@@ -25,6 +25,7 @@ import androidx.preference.PreferenceManager
 import me.osku.freeshiamy.engine.CinEntry
 import me.osku.freeshiamy.engine.CinParser
 import me.osku.freeshiamy.engine.ShiamyEngine
+import me.osku.freeshiamy.engine.SimplifiedChineseConverter
 import me.osku.freeshiamy.engine.SpellEngine
 import me.osku.freeshiamy.settings.SettingsKeys
 import me.osku.freeshiamy.settings.SettingsActivity
@@ -56,6 +57,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private var candidateMoreLimit: Int = SettingsKeys.DEFAULT_CANDIDATE_MORE_LIMIT
     private var keyboardHeightPercent: Int = SettingsKeys.DEFAULT_KEYBOARD_HEIGHT_PERCENT
     private var showShortestCodeHint: Boolean = SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT
+    private var simplifiedOutput: Boolean = SettingsKeys.DEFAULT_SIMPLIFIED_OUTPUT
+    private val simplifiedChineseConverter by lazy {
+        assets.open("opencc/TSCharacters.txt").use { SimplifiedChineseConverter(it) }
+    }
     private var shortestCodeHintText: String? = null
     private var explicitLookupHint = false
     private var disableImeInSensitiveFields: Boolean = SettingsKeys.DEFAULT_DISABLE_IME_IN_SENSITIVE_FIELDS
@@ -719,7 +724,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
 
     private fun commitValue(value: String, typedCode: String, isReverseCommit: Boolean, ic: InputConnection) {
         val hintText = buildShortestCodeHintText(value, typedCode, isReverseCommit)
-        ic.commitText(value, 1)
+        val output = if (simplifiedOutput) simplifiedChineseConverter.convert(value) else value
+        ic.commitText(output, 1)
         clearState()
         shortestCodeHintText = hintText
     }
@@ -895,6 +901,10 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         showShortestCodeHint = prefs.getBoolean(
             SettingsKeys.KEY_SHOW_SHORTEST_CODE_HINT,
             SettingsKeys.DEFAULT_SHOW_SHORTEST_CODE_HINT,
+        )
+        simplifiedOutput = prefs.getBoolean(
+            SettingsKeys.KEY_SIMPLIFIED_OUTPUT,
+            SettingsKeys.DEFAULT_SIMPLIFIED_OUTPUT,
         )
         if (!showShortestCodeHint && !explicitLookupHint) {
             shortestCodeHintText = null
@@ -1087,7 +1097,8 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
     private fun commitLookupValue(value: String) {
         if (!codeLookupActive) return
         val ic = currentInputConnection ?: return
-        if (!ic.commitText(value, 1)) return
+        val output = if (simplifiedOutput) simplifiedChineseConverter.convert(value) else value
+        if (!ic.commitText(output, 1)) return
         clearState()
         // This is the result of an explicit lookup, so keep its code visible even if normal
         // shortest-code hints are disabled in settings.

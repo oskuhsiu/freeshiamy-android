@@ -50,6 +50,17 @@
     </PreferenceCategory>
 
     <PreferenceCategory
+        android:title="輸入">
+
+        <SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="simplified_output"
+            android:summary="@string/simplified_output_summary"
+            android:title="@string/simplified_output_title" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
         android:title="候選">
 
         <SwitchPreferenceCompat

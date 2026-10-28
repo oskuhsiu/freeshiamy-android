@@ -1,0 +1,13 @@
+Open Chinese Convert (OpenCC)
+https://github.com/BYVoid/OpenCC
+
+Version: ver.1.1.9
+Commit: 556ed22496d650bd0b13b6c163be9814637970ae
+License: Apache License 2.0 (see LICENSE in this directory)
+
+TSCharacters.txt is an unmodified copy of data/dictionary/TSCharacters.txt:
+https://github.com/BYVoid/OpenCC/blob/556ed22496d650bd0b13b6c163be9814637970ae/data/dictionary/TSCharacters.txt
+
+FreeShiamy uses the first target for each source character, matching OpenCC's
+default choice. Conversion applies to individual selected characters, without
+phrase-level disambiguation or regional vocabulary replacement.
