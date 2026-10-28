@@ -5,6 +5,8 @@
     <string name="haptic_feedback_summary">按下按鍵時提供觸覺回饋，並遵循系統設定</string>
     <string name="simplified_output_title">簡體輸出</string>
     <string name="simplified_output_summary">沿用繁體字碼與候選字，選字上屏時轉為簡體（含查字碼選字）</string>
+    <string name="keyboard_mode_traditional">嘸</string>
+    <string name="keyboard_mode_simplified">呒</string>
     <string name="keyboard_tools_description">開啟鍵盤工具</string>
     <string name="keyboard_settings">設定</string>
     <string name="keyboard_switch">切換鍵盤</string>

@@ -1009,6 +1009,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
             inputMethodManager?.shouldOfferSwitchingToNextInputMethod(getToken()) ?: false
         nextKeyboard?.setLanguageSwitchKeyVisibility(shouldSupportLanguageSwitchKey)
         inputView?.keyboard = nextKeyboard
+        inputView?.setOutputModeLabel(simplifiedOutput)
         updateLetterShift()
     }
 
@@ -1048,6 +1049,7 @@ class FreeShiamyIME : InputMethodService(), KeyboardView.OnKeyboardActionListene
         pickerMode = mode
         picker.visibility = if (codeLookupActive) View.GONE else View.VISIBLE
         picker.setImeOptions(currentInputEditorInfo?.imeOptions ?: EditorInfo.IME_ACTION_NONE)
+        picker.setOutputModeLabel(simplifiedOutput)
         picker.show(mode)
         updateUi()
     }

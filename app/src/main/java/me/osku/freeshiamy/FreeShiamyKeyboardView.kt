@@ -75,6 +75,13 @@ class FreeShiamyKeyboardView : KeyboardView {
         keyHapticFeedbackEnabled = enabled
     }
 
+    fun setOutputModeLabel(simplified: Boolean) {
+        keyboard.keys.first { it.codes[0] == 32 }.label = context.getString(
+            if (simplified) R.string.keyboard_mode_simplified else R.string.keyboard_mode_traditional,
+        )
+        invalidateAllKeys()
+    }
+
     fun setLetterShiftState(shifted: Boolean, capsLocked: Boolean) {
         isShifted = shifted
         val shiftKey = keyboard?.keys?.firstOrNull {

@@ -180,6 +180,10 @@ internal class SymbolPickerView @JvmOverloads constructor(
         footer.invalidateAllKeys()
     }
 
+    fun setOutputModeLabel(simplified: Boolean) {
+        footer.setOutputModeLabel(simplified)
+    }
+
     fun setSpaceSwipeEnabled(enabled: Boolean) {
         footer.setSpaceSwipeEnabled(enabled)
     }
